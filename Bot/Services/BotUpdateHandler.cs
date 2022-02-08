@@ -3,10 +3,21 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Extensions.Polling;
 
+using Bot.Entities;
+
 namespace Bot.Services
 {
     public class BotUpdateHandler : IUpdateHandler
     {
+        private readonly ApplicationContext _context;
+        private readonly ResourceReader _resourceReader;
+
+        public BotUpdateHandler(ApplicationContext context, ResourceReader resourceReader)
+        {
+            _context = context;
+            _resourceReader = resourceReader;
+        }
+
         public Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
@@ -40,7 +51,7 @@ namespace Bot.Services
 
             async Task Start(ITelegramBotClient botClient, Message message) 
             {
-                await botClient.SendTextMessageAsync(message.Chat.Id, "Hello");
+                await botClient.SendTextMessageAsync(message.Chat.Id, _resourceReader["TestIsStarted"]);
             }
         }
     }
