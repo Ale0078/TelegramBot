@@ -1,26 +1,38 @@
 ﻿using Telegram.Bot;
+using Telegram.Bot.Extensions.Polling;
 
 namespace Bot.Services
 {
     public class ConfigureBot : IHostedService
     {
-        private readonly IConfiguration _configuration;
+        private readonly CancellationTokenSource _cancellationToken;
         private readonly IServiceProvider _serviceProvider;
 
-        public ConfigureBot(IConfiguration configuration, IServiceProvider serviceProvider)
+        public ConfigureBot(IServiceProvider serviceProvider)
         {
-            _configuration = configuration;
             _serviceProvider = serviceProvider;
+
+            _cancellationToken = new CancellationTokenSource();
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            using var scope = _serviceProvider.CreateScope();
+
+            ITelegramBotClient bot = scope.ServiceProvider.GetService<ITelegramBotClient>();
+
+            ReceiverOptions receiverOptions = new() { AllowedUpdates = { } };
+
+            bot.StartReceiving<BotUpdateHandler>(receiverOptions, _cancellationToken.Token);
+
+            return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            _cancellationToken.Cancel();
+
+            return Task.CompletedTask;
         }
     }
 }
