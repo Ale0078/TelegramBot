@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Bot.Entities\Bot.Entities.csproj" />
+    <ProjectReference Include="..\Bot.Models\Bot.Models.csproj" />
   </ItemGroup>
 
 </Project>
