@@ -12,6 +12,8 @@ namespace Bot.Entities
 
         public DbSet<FailMessage> FailMessages { get; set; }
 
+        public DbSet<Chat> Chats { get; set; }
+
         public ApplicationContext(DbContextOptions<ApplicationContext> options) : base(options)
         {
             Database.EnsureCreated();
