@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 using Telegram.Bot;
 
-using Bot;
 using Bot.AutoMapperProfiles;
 using Bot.Entities;
 using Bot.Services;
@@ -13,7 +12,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHostedService<ConfigureBot>();
 
-builder.Services.AddTransient<ChatService>(_ => new ChatService(CreateContext()));
+builder.Services.AddTransient<ChatService>(serviceProvider => new ChatService(CreateContext(), 
+    serviceProvider.GetService<IMapper>()));
 builder.Services.AddTransient<TestExecutor>(serviceProvider => new TestExecutor(CreateContext(), 
     serviceProvider.GetService<IMapper>(), serviceProvider.GetService<ResourceReader>()));
 builder.Services.AddTransient<BotUpdateHandler>();
@@ -26,7 +26,8 @@ builder.Services.AddDbContext<ApplicationContext>(options => options.UseMySql(
         connectionString: builder.Configuration.GetConnectionString("DefaultConnection"),
         serverVersion: new MySqlServerVersion(new Version(builder.Configuration.GetSection("MySqlServerVersion").Value))));
 
-builder.Services.AddAutoMapper(typeof(SuccessMessageProfile), typeof(FailMessageProfile), typeof(AnswerProfile), typeof(QuestionProfile));
+builder.Services.AddAutoMapper(typeof(SuccessMessageProfile), typeof(FailMessageProfile), typeof(AnswerProfile), typeof(QuestionProfile),
+    typeof(ChatProfile));
 
 var app = builder.Build();
 
