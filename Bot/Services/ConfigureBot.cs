@@ -10,7 +10,6 @@ namespace Bot.Services
         public ConfigureBot(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider;
-
         }
 
         public Task StartAsync(CancellationToken cancellationToken)

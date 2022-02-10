@@ -12,11 +12,13 @@ namespace Bot.Services
     {
         private readonly ResourceReader _resourceReader;
         private readonly TestExecutor _testExecutor;
+        private readonly ChatService _chatService;
 
-        public BotUpdateHandler(ResourceReader resourceReader, TestExecutor testExecutor)
+        public BotUpdateHandler(ResourceReader resourceReader, TestExecutor testExecutor, ChatService chatService)
         {
             _resourceReader = resourceReader;
             _testExecutor = testExecutor;
+            _chatService = chatService;
         }
 
         public Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
@@ -90,6 +92,11 @@ namespace Bot.Services
 
             _testExecutor.AddUser(message.Chat.Id);
 
+            if (!_chatService.DoesExist(message.Chat.Id))
+            {
+                await _chatService.AddChat(message.Chat.Id);
+            }
+
             await PrepairQuestionToUser(botClient, message.Chat.Id);
         }
 
@@ -147,6 +154,8 @@ namespace Bot.Services
                 chatId: message.Chat.Id, 
                 text: _resourceReader["FinishTest"], 
                 replyMarkup: keyboard);
+
+            await _chatService.FinishTest(message.Chat.Id);
         }
 
         private async Task PrepairQuestionToUser(ITelegramBotClient botClient, long userId) 
