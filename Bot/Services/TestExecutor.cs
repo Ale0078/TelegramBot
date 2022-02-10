@@ -17,8 +17,6 @@ namespace Bot.Services
 
         private List<Question> Test { get; set; }
 
-        public event Action FinishTestEvent;
-
         public TestExecutor(Bot.Entities.ApplicationContext context, IMapper mapper, ResourceReader resourceReader)
         {
             _mapper = mapper;
@@ -31,6 +29,13 @@ namespace Bot.Services
                 .AsNoTracking());
 
             _participants = new ConcurrentDictionary<long, MarkScore>();
+
+            _weightOfTest = 10;
+        }
+
+        public bool DoesUserFinishTest(long userId) 
+        {
+            return _participants[userId].State == _weightOfTest;
         }
 
         public bool HasUser(long id) 
@@ -49,7 +54,7 @@ namespace Bot.Services
 
         public string CheckAnswer(long userId, string answer) 
         {
-            MarkScore userScore = _participants.First(key => key.Key == userId).Value;
+            MarkScore userScore = _participants[userId];
             Answer userAnswer = userScore.CurrentQuestion.Answers.First(answerModel => answerModel.Content == answer);
 
             string checkResult;
@@ -67,19 +72,17 @@ namespace Bot.Services
 
             userScore.State++;
 
-            if (userScore.State == _weightOfTest)
+            if (Test.IndexOf(userScore.CurrentQuestion) + 1 < Test.Count)
             {
-                return FinishTest(userId, userScore);
+                userScore.CurrentQuestion = Test[Test.IndexOf(userScore.CurrentQuestion) + 1];
             }
-
-            userScore.CurrentQuestion = Test[Test.IndexOf(userScore.CurrentQuestion) + 1];
 
             return checkResult;
         }
 
         public Question GetCurrentQuestion(long userId) 
         {
-            return _participants.First(key => key.Key == userId).Value.CurrentQuestion;
+            return _participants[userId].CurrentQuestion;
         }
 
         public bool RemoveUser(long userId) 
@@ -87,18 +90,21 @@ namespace Bot.Services
             return _participants.Remove(userId, out _);
         }
 
-        private string FinishTest(long userId, MarkScore score) 
+        public string FinishTest(long userId)
         {
-            try
-            {
-                return _resourceReader["FinishTest"];
-            }
-            finally
-            {
-                FinishTestEvent?.Invoke();
+            int score = _participants[userId].Score;
 
-                RemoveUser(userId);
-            }
+            RemoveUser(userId);
+
+            return score switch 
+            {
+                0 or 2 => string.Format(_resourceReader["TestScoreBetweenZireTwo"], score),
+                3 or 4 => string.Format(_resourceReader["TestScoreBetweenThreeFour"], score),
+                5 or 6 => string.Format(_resourceReader["TestScoreBetweenFiveSix"], score),
+                7 or 8 => string.Format(_resourceReader["TestScoreBetweenSevenEight"], score),
+                9 or 10 => string.Format(_resourceReader["TestScoreBetweenNineTen"], score),
+                _ => "Not found"
+            };
         }
     }
 }

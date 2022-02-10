@@ -14,7 +14,7 @@ namespace Bot.Entities
 
         public ApplicationContext(DbContextOptions<ApplicationContext> options) : base(options)
         {
-           Database.EnsureCreated();
+            Database.EnsureCreated();
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

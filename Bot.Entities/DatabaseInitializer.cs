@@ -22,7 +22,7 @@
 
             FailMessage failMessage1 = new() { Id = new Guid("00000000-0000-0000-0000-000000000001"), Message = "Ты не совсем внимательный🤔\n\nЗдесь тебе нужно обратить на разницу между past simple и  present perfect🥰" };
             FailMessage failMessage2 = new() { Id = new Guid("00000000-0000-0000-0000-000000000002"), Message = "Не совсем так, тебе нужно повторить конструкцию Present Perfect Continuous ☝️" };
-            FailMessage failMessage3 = new() { Id = new Guid("00000000-0000-0000-0000-000000000003"), Message = "К сожалению нет😔" };
+            FailMessage failMessage3 = new() { Id = new Guid("00000000-0000-0000-0000-000000000003"), Message = "К сожалению нет😔\n\nПовтори конструкцию Future Simple ✔️" };
             FailMessage failMessage4 = new() { Id = new Guid("00000000-0000-0000-0000-000000000004"), Message = "Нет, здесь тебе нужно повторить неправильные глаголы😉" };
             FailMessage failMessage5 = new() { Id = new Guid("00000000-0000-0000-0000-000000000005"), Message = "Нет, этот ответ неверный😬\n\nВспомни  использование времени  Present Perfect Continuous " };
             FailMessage failMessage6 = new() { Id = new Guid("00000000-0000-0000-0000-000000000006"), Message = "Этот ответ неверный, но ты не расстраивайся это  был сложный вопрос⚡️\n\nНо повтори тему Indirect Speech ✔️" };
@@ -34,7 +34,7 @@
             Question question1 = new() { Id = new Guid("00000000-0000-0000-0000-000000000001"), Content = "Переведи это предложение👇\n\nОн приехал", Mark = 1, FailMessageId = failMessage1.Id, SuccessMessageId = successMessage1.Id };
             Question question2 = new() { Id = new Guid("00000000-0000-0000-0000-000000000002"), Content = "Но давай дальше, вставь пропущенное слово👇\n\nHe has been ______ a letter for 20 minutes", Mark = 1, FailMessageId = failMessage2.Id, SuccessMessageId = successMessage2.Id };
             Question question3 = new() { Id = new Guid("00000000-0000-0000-0000-000000000003"), Content = "Вставь пропущенное слово\n\nShe will ____ soon", Mark = 1, FailMessageId = failMessage3.Id, SuccessMessageId = successMessage3.Id };
-            Question question4 = new() { Id = new Guid("00000000-0000-0000-0000-000000000004"), Content = "Повтори реконструкцию Future Simple ✔️\n\nТеперь выбери третью форму неправильного глагола WRITE", Mark = 1, FailMessageId = failMessage4.Id, SuccessMessageId = successMessage4.Id };
+            Question question4 = new() { Id = new Guid("00000000-0000-0000-0000-000000000004"), Content = "Теперь выбери третью форму неправильного глагола WRITE", Mark = 1, FailMessageId = failMessage4.Id, SuccessMessageId = successMessage4.Id };
             Question question5 = new() { Id = new Guid("00000000-0000-0000-0000-000000000005"), Content = "В каком времени написано это предложение?\n\nОна работает в этой компании 2 года 👇", Mark = 1, FailMessageId = failMessage5.Id, SuccessMessageId = successMessage5.Id };
             Question question6 = new() { Id = new Guid("00000000-0000-0000-0000-000000000006"), Content = "Теперь предложение на перевод👇\n\nОн сказал, что перезвонит.", Mark = 1, FailMessageId = failMessage6.Id, SuccessMessageId = successMessage6.Id };
             Question question7 = new() { Id = new Guid("00000000-0000-0000-0000-000000000007"), Content = "Переведи это предложение👇\n\nНас пригласили туда", Mark = 1, FailMessageId = failMessage7.Id, SuccessMessageId = successMessage7.Id };
@@ -46,17 +46,17 @@
             Answer answer1_2 = new() { Id = new Guid("00000000-0000-0000-0001-000000000002"), Content = "He already came", IsCorrect = false, QuestionId = question1.Id };
             Answer answer1_3 = new() { Id = new Guid("00000000-0000-0000-0001-000000000003"), Content = "He has come", IsCorrect = true, QuestionId = question1.Id };
 
-            Answer answer2_1 = new() { Id = new Guid("00000000-0000-0000-0002-000000000001"), Content = "writing", IsCorrect = true, QuestionId = question2.Id };
-            Answer answer2_2 = new() { Id = new Guid("00000000-0000-0000-0002-000000000002"), Content = "written", IsCorrect = false, QuestionId = question2.Id };
-            Answer answer2_3 = new() { Id = new Guid("00000000-0000-0000-0002-000000000003"), Content = "wrote", IsCorrect = false, QuestionId = question2.Id };
+            Answer answer2_1 = new() { Id = new Guid("00000000-0000-0000-0002-000000000001"), Content = "Writing", IsCorrect = true, QuestionId = question2.Id };
+            Answer answer2_2 = new() { Id = new Guid("00000000-0000-0000-0002-000000000002"), Content = "Written", IsCorrect = false, QuestionId = question2.Id };
+            Answer answer2_3 = new() { Id = new Guid("00000000-0000-0000-0002-000000000003"), Content = "Wrote", IsCorrect = false, QuestionId = question2.Id };
 
-            Answer answer3_1 = new() { Id = new Guid("00000000-0000-0000-0003-000000000001"), Content = "return", IsCorrect = true, QuestionId = question3.Id };
-            Answer answer3_2 = new() { Id = new Guid("00000000-0000-0000-0003-000000000002"), Content = "be returning", IsCorrect = false, QuestionId = question3.Id };
-            Answer answer3_3 = new() { Id = new Guid("00000000-0000-0000-0003-000000000003"), Content = "have returned", IsCorrect = false, QuestionId = question3.Id };
+            Answer answer3_1 = new() { Id = new Guid("00000000-0000-0000-0003-000000000001"), Content = "Return", IsCorrect = true, QuestionId = question3.Id };
+            Answer answer3_2 = new() { Id = new Guid("00000000-0000-0000-0003-000000000002"), Content = "Be returning", IsCorrect = false, QuestionId = question3.Id };
+            Answer answer3_3 = new() { Id = new Guid("00000000-0000-0000-0003-000000000003"), Content = "Have returned", IsCorrect = false, QuestionId = question3.Id };
 
-            Answer answer4_1 = new() { Id = new Guid("00000000-0000-0000-0004-000000000001"), Content = "write", IsCorrect = false, QuestionId = question4.Id };
-            Answer answer4_2 = new() { Id = new Guid("00000000-0000-0000-0004-000000000002"), Content = "wrote", IsCorrect = false, QuestionId = question4.Id };
-            Answer answer4_3 = new() { Id = new Guid("00000000-0000-0000-0004-000000000003"), Content = "written", IsCorrect = true, QuestionId = question4.Id };
+            Answer answer4_1 = new() { Id = new Guid("00000000-0000-0000-0004-000000000001"), Content = "Write", IsCorrect = false, QuestionId = question4.Id };
+            Answer answer4_2 = new() { Id = new Guid("00000000-0000-0000-0004-000000000002"), Content = "Wrote", IsCorrect = false, QuestionId = question4.Id };
+            Answer answer4_3 = new() { Id = new Guid("00000000-0000-0000-0004-000000000003"), Content = "Written", IsCorrect = true, QuestionId = question4.Id };
 
             Answer answer5_1 = new() { Id = new Guid("00000000-0000-0000-0005-000000000001"), Content = "Prsent Simple", IsCorrect = false, QuestionId = question5.Id };
             Answer answer5_2 = new() { Id = new Guid("00000000-0000-0000-0005-000000000002"), Content = "Prsent Continuous", IsCorrect = false, QuestionId = question5.Id };
