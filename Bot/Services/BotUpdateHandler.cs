@@ -30,9 +30,9 @@ namespace Bot.Services
         {
             var handler = update.Type switch
             {
-                UpdateType.Message => OnMessageReceived(botClient, update),
-                UpdateType.CallbackQuery => OnCallbackQueryReceive(botClient, update),
-                UpdateType.MyChatMember => A()
+                UpdateType.Message => OnMessageReceived(botClient, update.Message),
+                UpdateType.CallbackQuery => OnCallbackQueryReceive(botClient, update.CallbackQuery),
+                UpdateType.MyChatMember => OnMyCharMemberStateReceive(botClient, update.MyChatMember)
             };
             
             try
@@ -45,26 +45,57 @@ namespace Bot.Services
             }
         }
 
-        private Task A() => Task.CompletedTask;
-
-        private Task OnCallbackQueryReceive(ITelegramBotClient botClient, Update update) 
+        //Only to private chat
+        private Task OnMyCharMemberStateReceive(ITelegramBotClient botClient, ChatMemberUpdated myChatMember) 
         {
-            return update.CallbackQuery.Data switch
+            return myChatMember.NewChatMember.Status switch
             {
-                "/trail" => GetTrail(botClient, update.CallbackQuery.Message),
-                "/checkList" => GetCheckList(botClient, update.CallbackQuery.Message),
-                "/wantEverything" => GetTrailAndCheckList(botClient, update.CallbackQuery.Message)
+                ChatMemberStatus.Kicked => RemoveUser(myChatMember.From.Id),
+                ChatMemberStatus.Member => ReloadUser(botClient, myChatMember.From.Id),
+                _ => GetDefualtTask()
             };
         }
 
-        private async Task OnMessageReceived(ITelegramBotClient botClient, Update update) 
+        private Task RemoveUser(long userId) 
         {
-            if (update.Message.Type is not MessageType.Text)
+            if (_testExecutor.HasUser(userId))
+            {
+                _testExecutor.RemoveUser(userId);
+            }
+
+            if (_chatService.DoesExist(userId))
+            {
+                _chatService.RemoveChat(userId);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private Task ReloadUser(ITelegramBotClient botClient, long chatId) 
+        {
+            return Start(botClient, chatId);
+        }
+
+        private Task GetDefualtTask() => Task.CompletedTask;
+
+        private Task OnCallbackQueryReceive(ITelegramBotClient botClient, CallbackQuery callbackQuery) 
+        {
+            return callbackQuery.Data switch
+            {
+                "/trail" => GetTrail(botClient, callbackQuery.Message.Chat.Id),
+                "/checkList" => GetCheckList(botClient, callbackQuery.Message.Chat.Id),
+                "/wantEverything" => GetTrailAndCheckList(botClient, callbackQuery.Message.Chat.Id)
+            };
+        }
+
+        private async Task OnMessageReceived(ITelegramBotClient botClient, Message message) 
+        {
+            if (message.Type is not MessageType.Text)
             {
                 return;
             }
 
-            await ChooseAction(botClient, update.Message);
+            await ChooseAction(botClient, message);
         }
 
         private Task ChooseAction(ITelegramBotClient botClient, Message message) 
@@ -79,40 +110,40 @@ namespace Bot.Services
             {
                 action = message.Text switch
                 {
-                    "/start" => Start(botClient, message)
+                    "/start" => Start(botClient, message.Chat.Id)
                 };
             }
 
             return action;
         }
 
-        private async Task Start(ITelegramBotClient botClient, Message message)
+        private async Task Start(ITelegramBotClient botClient, long chatId)
         {
-            await botClient.SendTextMessageAsync(message.Chat.Id, _resourceReader["TestIsStarted"]);
+            await botClient.SendTextMessageAsync(chatId, _resourceReader["TestIsStarted"]);
 
-            _testExecutor.AddUser(message.Chat.Id);
+            _testExecutor.AddUser(chatId);
 
-            if (!_chatService.DoesExist(message.Chat.Id))
+            if (!_chatService.DoesExist(chatId))
             {
-                await _chatService.AddChat(message.Chat.Id);
+                await _chatService.AddChat(chatId);
             }
 
-            await PrepairQuestionToUser(botClient, message.Chat.Id);
+            await PrepairQuestionToUser(botClient, chatId);
         }
 
-        private async Task GetTrail(ITelegramBotClient botClient, Message message) 
+        private async Task GetTrail(ITelegramBotClient botClient, long chatId) 
         {
-            await botClient.SendTextMessageAsync(message.Chat.Id, _resourceReader["TrailDiscription"]);
+            await botClient.SendTextMessageAsync(chatId, _resourceReader["TrailDiscription"]);
         }
 
-        private async Task GetCheckList(ITelegramBotClient botClient, Message message) 
+        private async Task GetCheckList(ITelegramBotClient botClient, long chatId) 
         {
-            await botClient.SendTextMessageAsync(message.Chat.Id, _resourceReader["CheckListDiscription"]);
+            await botClient.SendTextMessageAsync(chatId, _resourceReader["CheckListDiscription"]);
         }
 
-        private async Task GetTrailAndCheckList(ITelegramBotClient botClient, Message message)
+        private async Task GetTrailAndCheckList(ITelegramBotClient botClient, long chatId)
         {
-            await botClient.SendTextMessageAsync(message.Chat.Id, _resourceReader["WantEverythingDiscription"]);
+            await botClient.SendTextMessageAsync(chatId, _resourceReader["WantEverythingDiscription"]);
         }
 
         private async Task ContinuTest(ITelegramBotClient botClient, Message message) 
@@ -123,7 +154,7 @@ namespace Bot.Services
 
             if (_testExecutor.DoesUserFinishTest(message.Chat.Id))
             {
-                await FinishTest(botClient, message);
+                await FinishTest(botClient, message.Chat.Id);
             }
             else 
             {
@@ -131,12 +162,12 @@ namespace Bot.Services
             }
         }
 
-        private async Task FinishTest(ITelegramBotClient botClient, Message message) 
+        private async Task FinishTest(ITelegramBotClient botClient, long chatId) 
         {
-            string finalResult = _testExecutor.FinishTest(message.Chat.Id);
+            string finalResult = _testExecutor.FinishTest(chatId);
 
             await botClient.SendTextMessageAsync(
-                chatId: message.Chat.Id, 
+                chatId: chatId, 
                 text: finalResult, 
                 replyMarkup: new ReplyKeyboardRemove());
 
@@ -151,11 +182,11 @@ namespace Bot.Services
             });
 
             await botClient.SendTextMessageAsync(
-                chatId: message.Chat.Id, 
+                chatId: chatId, 
                 text: _resourceReader["FinishTest"], 
                 replyMarkup: keyboard);
 
-            await _chatService.FinishTest(message.Chat.Id);
+            await _chatService.FinishTest(chatId);
         }
 
         private async Task PrepairQuestionToUser(ITelegramBotClient botClient, long userId) 
