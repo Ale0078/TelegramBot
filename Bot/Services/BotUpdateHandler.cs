@@ -10,6 +10,8 @@ namespace Bot.Services
 {
     public class BotUpdateHandler : IUpdateHandler
     {
+        private const string USER_ID = "UserId";
+
         private readonly ResourceReader _resourceReader;
         private readonly TestExecutor _testExecutor;
         private readonly ChatService _chatService;
@@ -21,9 +23,11 @@ namespace Bot.Services
             _chatService = chatService;
         }
 
-        public Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
+        public async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
         {
-            return Task.CompletedTask;
+            await botClient.SendTextMessageAsync(
+                chatId: (long)exception.Data[USER_ID],
+                text: _resourceReader["ExceptionMessage"]);
         }
 
         public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -41,6 +45,8 @@ namespace Bot.Services
             }
             catch (Exception ex) 
             {
+                ex.Data.Add(USER_ID, update.Message.Chat.Id);
+
                 await HandleErrorAsync(botClient, ex, cancellationToken);
             }
         }
