@@ -5,6 +5,7 @@ using Telegram.Bot.Extensions.Polling;
 using Telegram.Bot.Types.ReplyMarkups;
 
 using Bot.Models;
+using Bot.Data;
 
 namespace Bot.Services
 {
@@ -12,12 +13,16 @@ namespace Bot.Services
     {
         private const string USER_ID = "UserId";
 
+        private readonly SynchronizedCollection<long> _chats;
+        
         private readonly ResourceReader _resourceReader;
         private readonly TestExecutor _testExecutor;
         private readonly ChatService _chatService;
 
         public BotUpdateHandler(ResourceReader resourceReader, TestExecutor testExecutor, ChatService chatService)
         {
+            _chats = new SynchronizedCollection<long>();
+
             _resourceReader = resourceReader;
             _testExecutor = testExecutor;
             _chatService = chatService;
@@ -57,7 +62,6 @@ namespace Bot.Services
             return myChatMember.NewChatMember.Status switch
             {
                 ChatMemberStatus.Kicked => RemoveUser(myChatMember.From.Id),
-                ChatMemberStatus.Member => ReloadUser(botClient, myChatMember.From.Id),
                 _ => GetDefualtTask()
             };
         }
@@ -75,11 +79,6 @@ namespace Bot.Services
             }
 
             return Task.CompletedTask;
-        }
-
-        private Task ReloadUser(ITelegramBotClient botClient, long chatId) 
-        {
-            return Start(botClient, chatId);
         }
 
         private Task GetDefualtTask() => Task.CompletedTask;
@@ -116,23 +115,63 @@ namespace Bot.Services
             {
                 action = message.Text switch
                 {
-                    "/start" => Start(botClient, message.Chat.Id)
+                    "/start" => StartBot(botClient, message.Chat.Id),
+                    _ => ContinueStart(botClient, message)
                 };
             }
 
             return action;
         }
 
-        private async Task Start(ITelegramBotClient botClient, long chatId)
+        private async Task StartBot(ITelegramBotClient botClient, long chatId)
+        {
+            ReplyKeyboardMarkup keyboard = new(new[]
+            {
+                new[] { new KeyboardButton(UserComingResource.Instagram.ToString()), new KeyboardButton(UserComingResource.TikTok.ToString()) },
+                new[] { new KeyboardButton(UserComingResource.Reels.ToString()), new KeyboardButton(UserComingResource.Another.ToString()) }
+            });
+
+            await botClient.SendTextMessageAsync(
+                chatId: chatId, 
+                text:_resourceReader["FromUserResource"],
+                replyMarkup: keyboard);
+
+            if (!_chats.Contains(chatId))
+            {
+                _chats.Add(chatId);
+            }
+        }
+
+        private async Task ContinueStart(ITelegramBotClient botClient, Message message) 
+        {
+            if (Enum.TryParse(message.Text, out UserComingResource resource) && _chats.Contains(message.Chat.Id))
+            {
+                if (!_chatService.DoesExist(message.Chat.Id))
+                {
+                    await _chatService.AddChat(message.Chat.Id, new ChatUser
+                    {
+                        FirstName = message.From.FirstName,
+                        Surname = message.From.LastName,
+                        UserName = message.From.Username,
+                        From = resource
+                    });
+                }
+
+                _chats.Remove(message.Chat.Id);
+
+                await StartTest(botClient, message.Chat.Id);
+            }
+            else 
+            {
+                throw new Exception();
+            }
+        }
+
+        private async Task StartTest(ITelegramBotClient botClient, long chatId)
         {
             await botClient.SendTextMessageAsync(chatId, _resourceReader["TestIsStarted"]);
 
             _testExecutor.AddUser(chatId);
-
-            if (!_chatService.DoesExist(chatId))
-            {
-                await _chatService.AddChat(chatId);
-            }
 
             await PrepairQuestionToUser(botClient, chatId);
         }

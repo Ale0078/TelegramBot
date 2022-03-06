@@ -16,9 +16,9 @@ namespace Bot.Services
             _mapper = mapper;
         }
 
-        public async Task AddChat(long id) 
+        public async Task AddChat(long id, Models.ChatUser user)
         {
-            await _context.Chats.AddAsync(new Chat { Id = id });
+            await _context.Chats.AddAsync(new Chat { Id = id, ChatUser = _mapper.Map<ChatUser>(user) });
 
             await _context.SaveChangesAsync();
         }
