@@ -16,11 +16,13 @@ builder.Services.AddTransient<ChatService>(serviceProvider => new ChatService(Cr
     serviceProvider.GetService<IMapper>()));
 builder.Services.AddTransient<TestExecutor>(serviceProvider => new TestExecutor(CreateContext(), 
     serviceProvider.GetService<IMapper>(), serviceProvider.GetService<ResourceReader>()));
-builder.Services.AddTransient<BotUpdateHandler>();
 
+builder.Services.AddTransient<BotUpdateHandler>();
+builder.Services.AddTransient<AdminBotUpdateHandler>();
+
+builder.Services.AddSingleton<ITelegramBotClient>(serviceProvider => new TelegramBotClient(
+    builder.Configuration.GetSection("BotToken").Value));
 builder.Services.AddSingleton<ResourceReader>(x => new ResourceReader(builder.Configuration.GetSection("ResourcePath").Value));
-builder.Services.AddSingleton<ITelegramBotClient>(x =>
-    new TelegramBotClient(builder.Configuration.GetSection("BotToken").Value));
 
 builder.Services.AddDbContext<ApplicationContext>(options => options.UseMySql(
         connectionString: builder.Configuration.GetConnectionString("DefaultConnection"),

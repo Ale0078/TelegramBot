@@ -9,6 +9,7 @@ using Bot.Data;
 
 namespace Bot.Services
 {
+    //Only to private chat
     public class BotUpdateHandler : IUpdateHandler
     {
         private const string USER_ID = "UserId";
@@ -56,7 +57,6 @@ namespace Bot.Services
             }
         }
 
-        //Only to private chat
         private Task OnMyCharMemberStateReceive(ITelegramBotClient botClient, ChatMemberUpdated myChatMember) 
         {
             return myChatMember.NewChatMember.Status switch

@@ -1,4 +1,6 @@
-﻿namespace Bot.Entities
+﻿using Bot.Data;
+
+namespace Bot.Entities
 {
     public class DatabaseInitializer
     {
@@ -82,6 +84,8 @@
             Answer answer10_2 = new() { Id = new Guid("00000000-0000-0000-0010-000000000002"), Content = "Filed", IsCorrect = false, QuestionId = question10.Id };
             Answer answer10_3 = new() { Id = new Guid("00000000-0000-0000-0010-000000000003"), Content = "Flown", IsCorrect = true, QuestionId = question10.Id };
 
+            AdminUser admin = new() { UserName = "YuliaEnglish", Role = UserRole.Owner };
+
             context.SuccessMessages.AddRange(successMessage1, successMessage2, successMessage3, successMessage4, successMessage5, successMessage6, successMessage7, successMessage8, successMessage9, successMessage10);
 
             context.FailMessages.AddRange(failMessage1, failMessage2, failMessage3, failMessage4, failMessage5, failMessage6, failMessage7, failMessage8, failMessage9, failMessage10);
@@ -98,6 +102,8 @@
                 answer8_1, answer8_2, answer8_3,
                 answer9_1, answer9_2, answer9_3,
                 answer10_1, answer10_2, answer10_3);
+
+            context.AdminUsers.Add(admin);
 
             context.SaveChanges();
         }

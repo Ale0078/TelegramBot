@@ -6,11 +6,9 @@ namespace Bot.Models
     {
         public Guid Id { get; set; }
 
+        public long AdminChatId { get; set; }
+
         public string UserName { get; set; }
-
-        public string FirstName { get; set; }
-
-        public string Surname { get; set; }
 
         public UserRole Role { get; set; }
     }

@@ -1,6 +1,5 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Extensions.Polling;
-using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Bot.Services
@@ -22,8 +21,13 @@ namespace Bot.Services
         {
             using var scope = _serviceProvider.CreateScope();
 
+            IConfiguration configuration = scope.ServiceProvider.GetService<IConfiguration>();
             ITelegramBotClient bot = scope.ServiceProvider.GetService<ITelegramBotClient>();
+
             BotUpdateHandler updateHandler = scope.ServiceProvider.GetService<BotUpdateHandler>();
+            AdminBotUpdateHandler adminBotUpdate = scope.ServiceProvider.GetService<AdminBotUpdateHandler>();
+
+            ITelegramBotClient adminBot = new TelegramBotClient(configuration.GetSection("AdminBotToken").Value);
 
             ReceiverOptions receiverOptions = new() { AllowedUpdates = { } };
 
@@ -31,6 +35,12 @@ namespace Bot.Services
                 updateHandler: updateHandler.HandleUpdateAsync,
                 errorHandler: updateHandler.HandleErrorAsync,
                 receiverOptions: receiverOptions, 
+                cancellationToken: cancellationToken);
+
+            adminBot.StartReceiving(
+                updateHandler: adminBotUpdate.HandleUpdateAsync,
+                errorHandler: adminBotUpdate.HandleErrorAsync,
+                receiverOptions: receiverOptions,
                 cancellationToken: cancellationToken);
 
             SetTimer();
