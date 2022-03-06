@@ -7,5 +7,7 @@
         public bool DoesGetMail { get; set; }
 
         public bool DoesFinishTest { get; set; }
+
+        public ChatUser ChatUser { get; set; }
     }
 }

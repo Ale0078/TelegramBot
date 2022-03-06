@@ -6,8 +6,4 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Bot.Datas\Bot.Data.csproj" />
-  </ItemGroup>
-
 </Project>

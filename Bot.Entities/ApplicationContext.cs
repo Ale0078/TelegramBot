@@ -14,6 +14,10 @@ namespace Bot.Entities
 
         public DbSet<Chat> Chats { get; set; }
 
+        public DbSet<ChatUser> ChatUsers { get; set; }
+
+        public DbSet<AdminUser> AdminUsers { get; set; }
+
         public ApplicationContext(DbContextOptions<ApplicationContext> options) : base(options)
         {
             Database.EnsureCreated();

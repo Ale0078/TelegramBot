@@ -3,11 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bot", "Bot\Bot.csproj", "{833F2EB2-7C7F-44BD-A059-63E4C3B7D860}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bot", "Bot\Bot.csproj", "{833F2EB2-7C7F-44BD-A059-63E4C3B7D860}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bot.Entities", "Bot.Entities\Bot.Entities.csproj", "{35380716-3BFF-4941-9CBF-007634A237F5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bot.Entities", "Bot.Entities\Bot.Entities.csproj", "{35380716-3BFF-4941-9CBF-007634A237F5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bot.Models", "Bot.Models\Bot.Models.csproj", "{07BAB7E7-6D5A-44F9-9FE1-0C51DD36497B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bot.Models", "Bot.Models\Bot.Models.csproj", "{07BAB7E7-6D5A-44F9-9FE1-0C51DD36497B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bot.Data", "Bot.Datas\Bot.Data.csproj", "{92A3F3A9-79DF-46FB-A750-4FA60BE66DC9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{07BAB7E7-6D5A-44F9-9FE1-0C51DD36497B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{07BAB7E7-6D5A-44F9-9FE1-0C51DD36497B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{07BAB7E7-6D5A-44F9-9FE1-0C51DD36497B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{92A3F3A9-79DF-46FB-A750-4FA60BE66DC9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92A3F3A9-79DF-46FB-A750-4FA60BE66DC9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92A3F3A9-79DF-46FB-A750-4FA60BE66DC9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92A3F3A9-79DF-46FB-A750-4FA60BE66DC9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

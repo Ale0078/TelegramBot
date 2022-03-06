@@ -38,7 +38,7 @@ namespace Bot.Services
                 UpdateType.CallbackQuery => OnCallbackQueryReceive(botClient, update.CallbackQuery),
                 UpdateType.MyChatMember => OnMyCharMemberStateReceive(botClient, update.MyChatMember)
             };
-            
+
             try
             {
                 await handler;

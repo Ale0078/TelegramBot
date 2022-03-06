@@ -98,7 +98,9 @@ namespace Bot.Services
 
             return score switch 
             {
-                0 or 2 => string.Format(_resourceReader["TestScoreBetweenZireTwo"], score),
+                0 => string.Format(_resourceReader["TestScoreZero"], score),
+                1 => string.Format(_resourceReader["TestScoreOne"], score),
+                2 => string.Format(_resourceReader["TestScoreTwo"], score),
                 3 or 4 => string.Format(_resourceReader["TestScoreBetweenThreeFour"], score),
                 5 or 6 => string.Format(_resourceReader["TestScoreBetweenFiveSix"], score),
                 7 or 8 => string.Format(_resourceReader["TestScoreBetweenSevenEight"], score),

@@ -27,7 +27,7 @@ builder.Services.AddDbContext<ApplicationContext>(options => options.UseMySql(
         serverVersion: new MySqlServerVersion(new Version(builder.Configuration.GetSection("MySqlServerVersion").Value))));
 
 builder.Services.AddAutoMapper(typeof(SuccessMessageProfile), typeof(FailMessageProfile), typeof(AnswerProfile), typeof(QuestionProfile),
-    typeof(ChatProfile));
+    typeof(ChatProfile), typeof(UserProfile));
 
 var app = builder.Build();
 
