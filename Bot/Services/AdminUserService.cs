@@ -8,11 +8,15 @@ namespace Bot.Services
 {
     public class AdminUserService
     {
+        private readonly SynchronizedCollection<long> _uesrsAddingNewUser;
+
         private readonly Entities.ApplicationContext _context;
         private readonly IMapper _mapper;
 
         public AdminUserService(Entities.ApplicationContext context, IMapper mapper)
         {
+            _uesrsAddingNewUser = new SynchronizedCollection<long>();
+
             _context = context;
             _mapper = mapper;
         }
@@ -78,13 +82,29 @@ namespace Bot.Services
                 .FirstAsync(x => x.AdminChatId == adminChatId));
         }
 
-        public async Task AddAdminUser(string userName, UserRole role) 
+        public bool DoesUserStartAddingUser(long userChatId) 
+        {
+            return _uesrsAddingNewUser.Contains(userChatId);
+        }
+
+        public void StartAddingUser(long userAddingChatId) 
+        {
+            _uesrsAddingNewUser.Add(userAddingChatId);
+        }
+
+        public void BreakAddingUser(long userAddingChatId) 
+        {
+            _uesrsAddingNewUser.Remove(userAddingChatId);
+        }
+
+        public async Task AddUser(string userName, long userAddingChatId)
         {
             await _context.AdminUsers.AddAsync(new Entities.AdminUser
             {
-                UserName = userName,
-                Role = role
+                UserName = userName
             });
+
+            _uesrsAddingNewUser.Remove(userAddingChatId);
 
             await _context.SaveChangesAsync();
         }

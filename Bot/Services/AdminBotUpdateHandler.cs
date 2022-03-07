@@ -68,12 +68,34 @@ namespace Bot.Services
                 return;
             }
 
+            if (_adminUserService.DoesUserStartAddingUser(message.Chat.Id))
+            {
+                await OnContinueAddingUser(botClient, message, admin);
+
+                return;
+            }
+
             await ChooseCommand(botClient, message, admin);
         }
 
         public Task ChooseCommand(ITelegramBotClient botClient, Message message, AdminUser admin) 
         {
-            Task action = message.Text switch
+            Task action;
+
+            if (admin.Role is UserRole.Owner or UserRole.Developer)
+            {
+                action = message.Text switch
+                {
+                    AdminCommandList.ADD_USER => OnAddUser(botClient, message, admin)
+                };
+
+                if (admin is not null)
+                {
+                    return action;
+                }
+            }
+
+            action = message.Text switch
             {
                 AdminCommandList.START_COMMAND => OnStartCommand(botClient, message, admin),
                 AdminCommandList.HALPE_COMMAND => OnHelpCommand(botClient, message, admin)
@@ -97,6 +119,37 @@ namespace Bot.Services
             await UpdateUser(admin, message.From.Username);
 
             await botClient.SendTextMessageAsync(message.Chat.Id, GetHelpMessage(admin.Role));
+        }
+
+        public async Task OnAddUser(ITelegramBotClient botClient, Message message, AdminUser admin) 
+        {
+            await UpdateUser(admin, message.From.Username);
+
+            _adminUserService.StartAddingUser(message.Chat.Id);
+
+            await botClient.SendTextMessageAsync(message.Chat.Id, _resourceReader["AddingUser"]);
+        }
+
+        public async Task OnContinueAddingUser(ITelegramBotClient botClient, Message message, AdminUser admin) 
+        {
+            await UpdateUser(admin, message.From.Username);
+
+            if (_adminUserService.DoesUserExist(message.Text))
+            {
+                await botClient.SendTextMessageAsync(
+                    chatId: message.Chat.Id,
+                    text: String.Format(_resourceReader["ErrorWithAddingUser"], message.Text));
+
+                _adminUserService.BreakAddingUser(message.Chat.Id);
+
+                return;
+            }
+
+            await _adminUserService.AddUser(message.Text, message.Chat.Id);
+
+            await botClient.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: String.Format(_resourceReader["FinishAddingUser"], message.Text));
         }
 
         private string GetHelpMessage(UserRole role) 
