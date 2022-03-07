@@ -75,13 +75,24 @@ namespace Bot.Services
         {
             Task action = message.Text switch
             {
-                AdminCommandList.START_COMMAND => OnStartCommand(botClient, message, admin)
+                AdminCommandList.START_COMMAND => OnStartCommand(botClient, message, admin),
+                AdminCommandList.HALPE_COMMAND => OnHelpCommand(botClient, message, admin)
             };
 
             return action;
         }
 
         public async Task OnStartCommand(ITelegramBotClient botClient, Message message, AdminUser admin) 
+        {
+            if (_adminUserService.DoesUserNeedFinishRegistration(admin))
+            {
+                await _adminUserService.FinishUserRegistration(admin, message.Chat.Id);
+            }
+
+            await botClient.SendTextMessageAsync(message.Chat.Id, GetHelpMessage(admin.Role));
+        }
+
+        public async Task OnHelpCommand(ITelegramBotClient botClient, Message message, AdminUser admin) 
         {
             await UpdateUser(admin, message.From.Username);
 

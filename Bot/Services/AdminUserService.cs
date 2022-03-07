@@ -24,17 +24,26 @@ namespace Bot.Services
 
         public bool DoesUserExist(string userName) 
         {
-            return _context.AdminUsers.Any(admin => admin.UserName == userName);
+            return _context.AdminUsers
+                .AsNoTracking()
+                .Any(admin => admin.UserName == userName);
         }
 
         public bool DoesUserExist(long adminChatId)
         {
-            return _context.AdminUsers.Any(admin => admin.AdminChatId == adminChatId);
+            return _context.AdminUsers
+                .AsNoTracking()
+                .Any(admin => admin.AdminChatId == adminChatId);
         }
 
         public bool DoesUserNeedUpdate(string userName, AdminUser admin) 
         {
             return admin.UserName != userName;
+        }
+
+        public bool DoesUserNeedFinishRegistration(AdminUser admin) 
+        {
+            return admin.AdminChatId is 0L;
         }
 
         public async Task FinishUserRegistration(AdminUser admin, long adminChatId) 
