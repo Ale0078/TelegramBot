@@ -85,6 +85,7 @@ namespace Bot.Entities
             Answer answer10_3 = new() { Id = new Guid("00000000-0000-0000-0010-000000000003"), Content = "Flown", IsCorrect = true, QuestionId = question10.Id };
 
             AdminUser admin = new() { UserName = "YuliaEnglish", Role = UserRole.Owner };
+            AdminUser admin1 = new() { UserName = "alexcvunja", Role = UserRole.Developer };
 
             context.SuccessMessages.AddRange(successMessage1, successMessage2, successMessage3, successMessage4, successMessage5, successMessage6, successMessage7, successMessage8, successMessage9, successMessage10);
 
@@ -103,7 +104,7 @@ namespace Bot.Entities
                 answer9_1, answer9_2, answer9_3,
                 answer10_1, answer10_2, answer10_3);
 
-            context.AdminUsers.Add(admin);
+            context.AdminUsers.AddRange(admin, admin1);
 
             context.SaveChanges();
         }

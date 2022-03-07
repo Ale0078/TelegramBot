@@ -1,5 +1,6 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Extensions.Polling;
+using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Bot.Services
@@ -40,7 +41,7 @@ namespace Bot.Services
             adminBot.StartReceiving(
                 updateHandler: adminBotUpdate.HandleUpdateAsync,
                 errorHandler: adminBotUpdate.HandleErrorAsync,
-                receiverOptions: receiverOptions,
+                receiverOptions: new() { AllowedUpdates = new[] { UpdateType.Message } },
                 cancellationToken: cancellationToken);
 
             SetTimer();

@@ -16,6 +16,8 @@ builder.Services.AddTransient<ChatService>(serviceProvider => new ChatService(Cr
     serviceProvider.GetService<IMapper>()));
 builder.Services.AddTransient<TestExecutor>(serviceProvider => new TestExecutor(CreateContext(), 
     serviceProvider.GetService<IMapper>(), serviceProvider.GetService<ResourceReader>()));
+builder.Services.AddTransient<AdminUserService>(serviceProvider => new AdminUserService(CreateContext(),
+    serviceProvider.GetService<IMapper>()));
 
 builder.Services.AddTransient<BotUpdateHandler>();
 builder.Services.AddTransient<AdminBotUpdateHandler>();
