@@ -69,28 +69,47 @@ namespace Bot.Services
                 return;
             }
 
-            if (_adminUserService.DoesUserStartAddingUser(message.Chat.Id))
-            {
-                await OnContinueAddingUser(botClient, message);
+            Task handler;
 
-                return;
+            if (_adminUserService.TryGetExecutingCommand(message.Chat.Id, out ExecutingCommand command))
+            {
+                handler = ChooseContinueCommand(botClient, message, admin, command);
+            }
+            else 
+            {
+                handler = ChooseCommand(botClient, message, admin);
             }
 
-            if (_adminUserService.DoesUserStartSettingAdminUser(message.Chat.Id))
-            {
-                await OnContinueSettingAdminUser(botClient, message);
+            await handler;
+        }
 
-                return;
+        public Task ChooseContinueCommand(ITelegramBotClient botClient, Message message, AdminUser admin, ExecutingCommand command) 
+        {
+            Task action;
+
+            action = command switch
+            {
+                _ => ChooseFromOwnerContinueCommand(botClient, message, admin, command)
+            };
+
+            return action;
+        }
+
+        public Task ChooseFromOwnerContinueCommand(ITelegramBotClient botClient, Message message, AdminUser admin, ExecutingCommand command) 
+        {
+            Task action = null;
+
+            if (admin.Role is UserRole.Owner or UserRole.Developer)
+            {
+                action = command switch
+                {
+                    ExecutingCommand.Adding => OnContinueAddingUser(botClient, message),
+                    ExecutingCommand.SettingAdminRole => OnContinueSettingAdminUser(botClient, message),
+                    ExecutingCommand.SoftRemoning => OnContinueSoftRemoveUser(botClient, message)
+                };
             }
 
-            if (_adminUserService.DoesUserStartRemovingAdminRole(message.Chat.Id))
-            {
-                await OnContinueSoftRemoveUser(botClient, message);
-
-                return;
-            }
-
-            await ChooseCommand(botClient, message, admin);
+            return action;
         }
 
         public Task ChooseCommand(ITelegramBotClient botClient, Message message, AdminUser admin) 
@@ -126,7 +145,7 @@ namespace Bot.Services
 
         public async Task OnAddUser(ITelegramBotClient botClient, Message message)
         {
-            _adminUserService.StartAddingUser(message.Chat.Id);
+            _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.Adding);
 
             await botClient.SendTextMessageAsync(message.Chat.Id, _resourceReader["AddingUser"]);
         }
@@ -139,7 +158,7 @@ namespace Bot.Services
             {
                 text = string.Format(_resourceReader["ErrorWithAddingUser"], message.Text);
 
-                _adminUserService.BreakAddingUser(message.Chat.Id);
+                _adminUserService.StopExecutingCommand(message.Chat.Id);
             }
             else 
             {
@@ -167,7 +186,7 @@ namespace Bot.Services
                     admins: _adminUserService.GetAdminByRole(UserRole.Default),
                     columns: 2)));
 
-            _adminUserService.StartSettingAdminUser(message.Chat.Id);
+            _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.SettingAdminRole);
         }
 
         public async Task OnContinueSettingAdminUser(ITelegramBotClient botClient, Message message) 
@@ -190,7 +209,7 @@ namespace Bot.Services
                     text: text,
                     replyMarkup: new ReplyKeyboardRemove());
 
-            _adminUserService.BreakSettingAdminUser(message.Chat.Id);
+            _adminUserService.StopExecutingCommand(message.Chat.Id);
 
             return;
         }
@@ -211,7 +230,7 @@ namespace Bot.Services
                     admins: _adminUserService.GetAdminByRole(UserRole.Admin),
                     columns: 2)));
 
-            _adminUserService.StartRemovingAdminRole(message.Chat.Id);
+            _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.SoftRemoning);
         }
 
         public async Task OnContinueSoftRemoveUser(ITelegramBotClient botClient, Message message) 
@@ -234,7 +253,7 @@ namespace Bot.Services
                 text: text,
                 replyMarkup: new ReplyKeyboardRemove());
 
-            _adminUserService.BreakRemovingAdminRole(message.Chat.Id);
+            _adminUserService.StopExecutingCommand(message.Chat.Id);
         }
 
         public async Task OnStartCommand(ITelegramBotClient botClient, Message message, AdminUser admin) 

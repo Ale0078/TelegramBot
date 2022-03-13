@@ -1,25 +1,23 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 
 using Bot.Models;
 using Bot.Data;
+using Bot.Datas;
 
 namespace Bot.Services
 {
     public class AdminUserService
     {
-        private readonly SynchronizedCollection<long> _usersAddingNewUser;
-        private readonly SynchronizedCollection<long> _usersSettingAdminUser;
-        private readonly SynchronizedCollection<long> _usersRemovingAdminRole;
+        private readonly ConcurrentDictionary<long, ExecutingCommand> _executers;
 
         private readonly Entities.ApplicationContext _context;
         private readonly IMapper _mapper;
 
         public AdminUserService(Entities.ApplicationContext context, IMapper mapper)
         {
-            _usersAddingNewUser = new SynchronizedCollection<long>();
-            _usersSettingAdminUser = new SynchronizedCollection<long>();
-            _usersRemovingAdminRole = new SynchronizedCollection<long>();
+            _executers = new ConcurrentDictionary<long, ExecutingCommand>();
 
             _context = context;
             _mapper = mapper;
@@ -86,24 +84,19 @@ namespace Bot.Services
                 .FirstAsync(x => x.AdminChatId == adminChatId));
         }
 
-        public bool DoesUserStartAddingUser(long userChatId) 
+        public void StartExecutingCommand(long userChatId, ExecutingCommand command) 
         {
-            return _usersAddingNewUser.Contains(userChatId);
+            _executers.TryAdd(userChatId, command);
         }
 
-        public bool DoesUserStartSettingAdminUser(long userChatId) 
+        public void StopExecutingCommand(long userChatId) 
         {
-            return _usersSettingAdminUser.Contains(userChatId);
+            _executers.Remove(userChatId, out _);
         }
 
-        public void StartAddingUser(long userAddingChatId) 
+        public bool TryGetExecutingCommand(long userChatId, out ExecutingCommand command) 
         {
-            _usersAddingNewUser.Add(userAddingChatId);
-        }
-
-        public void BreakAddingUser(long userAddingChatId) 
-        {
-            _usersAddingNewUser.Remove(userAddingChatId);
+            return _executers.TryGetValue(userChatId, out command);
         }
 
         public async Task AddUser(string userName, long userAddingChatId)
@@ -113,36 +106,10 @@ namespace Bot.Services
                 UserName = userName
             });
 
-            _usersAddingNewUser.Remove(userAddingChatId);
+            StopExecutingCommand(userAddingChatId);
 
             await _context.SaveChangesAsync();
         }
-
-        public void StartSettingAdminUser(long userSettingAdminUserChatId) 
-        {
-            _usersSettingAdminUser.Add(userSettingAdminUserChatId);
-        }
-
-        public void BreakSettingAdminUser(long userSettingAdminUserChatId) 
-        {
-            _usersSettingAdminUser.Remove(userSettingAdminUserChatId);
-        }
-
-        public void StartRemovingAdminRole(long userRemovingAdminRoleChatId) 
-        {
-            _usersRemovingAdminRole.Add(userRemovingAdminRoleChatId);
-        }
-
-        public void BreakRemovingAdminRole(long userRemovingAdminRoleChatId)
-        {
-            _usersRemovingAdminRole.Remove(userRemovingAdminRoleChatId);
-        }
-
-        public bool DoesUserStartRemovingAdminRole(long userRemovingAdminRoleChatId) 
-        {
-            return _usersRemovingAdminRole.Contains(userRemovingAdminRoleChatId);
-        }
-
         public async Task SetRole(string uesrName, UserRole role) 
         {
             Entities.AdminUser adminUser = await _context.AdminUsers
@@ -173,6 +140,22 @@ namespace Bot.Services
             return _context.AdminUsers
                 .AsNoTracking()
                 .Any(x => x.Role == UserRole.Admin);
+        }
+
+        public async Task<AdminUser> RemoveUser(string userName) 
+        {
+            try
+            {
+                return _mapper.Map<AdminUser>(_context.AdminUsers
+                    .Remove(await _context.AdminUsers
+                        .AsNoTracking()
+                        .FirstAsync(x => x.UserName == userName))
+                    .Entity);
+            }
+            finally
+            {
+                await _context.SaveChangesAsync();
+            }
         }
     }
 }
