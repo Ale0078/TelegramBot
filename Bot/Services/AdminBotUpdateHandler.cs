@@ -3,6 +3,7 @@ using Telegram.Bot;
 using Telegram.Bot.Extensions.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 using Bot.Datas;
 using Bot.Data;
@@ -57,7 +58,7 @@ namespace Bot.Services
             {
                 ex.Data.Add(ADMIN_ID, update.Message.Chat.Id);
 
-                HandleErrorAsync(botClient, ex, cancellationToken);
+                await HandleErrorAsync(botClient, ex, cancellationToken);
             }
         }
 
@@ -70,7 +71,21 @@ namespace Bot.Services
 
             if (_adminUserService.DoesUserStartAddingUser(message.Chat.Id))
             {
-                await OnContinueAddingUser(botClient, message, admin);
+                await OnContinueAddingUser(botClient, message);
+
+                return;
+            }
+
+            if (_adminUserService.DoesUserStartSettingAdminUser(message.Chat.Id))
+            {
+                await OnContinueSettingAdminUser(botClient, message);
+
+                return;
+            }
+
+            if (_adminUserService.DoesUserStartRemovingAdminRole(message.Chat.Id))
+            {
+                await OnContinueSoftRemoveUser(botClient, message);
 
                 return;
             }
@@ -82,26 +97,144 @@ namespace Bot.Services
         {
             Task action;
 
+            action = message.Text switch
+            {
+                AdminCommandList.START_COMMAND => OnStartCommand(botClient, message, admin),
+                AdminCommandList.HALPE_COMMAND => OnHelpCommand(botClient, message, admin),
+                _ => ChooseFromOwnerCommands(botClient, message, admin)
+            };
+
+            return action;
+        }
+
+        public Task ChooseFromOwnerCommands(ITelegramBotClient botClient, Message message, AdminUser admin) 
+        {
+            Task action = null;
+
             if (admin.Role is UserRole.Owner or UserRole.Developer)
             {
                 action = message.Text switch
                 {
-                    AdminCommandList.ADD_USER => OnAddUser(botClient, message, admin)
+                    AdminCommandList.ADD_USER => OnAddUser(botClient, message),
+                    AdminCommandList.SET_ADMIN_USER => OnSetAdminUser(botClient, message),
+                    AdminCommandList.SOFT_REMOVE_ADMIN_USER => OnSoftRemoveUser(botClient, message)
                 };
-
-                if (admin is not null)
-                {
-                    return action;
-                }
             }
 
-            action = message.Text switch
-            {
-                AdminCommandList.START_COMMAND => OnStartCommand(botClient, message, admin),
-                AdminCommandList.HALPE_COMMAND => OnHelpCommand(botClient, message, admin)
-            };
-
             return action;
+        }
+
+        public async Task OnAddUser(ITelegramBotClient botClient, Message message)
+        {
+            _adminUserService.StartAddingUser(message.Chat.Id);
+
+            await botClient.SendTextMessageAsync(message.Chat.Id, _resourceReader["AddingUser"]);
+        }
+
+        public async Task OnContinueAddingUser(ITelegramBotClient botClient, Message message)
+        {
+            string text;
+
+            if (_adminUserService.DoesUserExist(message.Text))
+            {
+                text = string.Format(_resourceReader["ErrorWithAddingUser"], message.Text);
+
+                _adminUserService.BreakAddingUser(message.Chat.Id);
+            }
+            else 
+            {
+                text = string.Format(_resourceReader["FinishAddingUser"], message.Text);
+
+                await _adminUserService.AddUser(message.Text, message.Chat.Id);
+            }
+
+            await botClient.SendTextMessageAsync(message.Chat.Id, text);
+        }
+
+        public async Task OnSetAdminUser(ITelegramBotClient botClient, Message message) 
+        {
+            if (!_adminUserService.HaveAnyNoAdminUsers())
+            {
+                await botClient.SendTextMessageAsync(message.Chat.Id, _resourceReader["DontHaveAnyNoAdminUser"]);
+
+                return;
+            }
+
+            await botClient.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: _resourceReader["SettingAdminUser"],
+                replyMarkup: new ReplyKeyboardMarkup(GetKeyboardsToAdminUsers(
+                    admins: _adminUserService.GetAdminByRole(UserRole.Default),
+                    columns: 2)));
+
+            _adminUserService.StartSettingAdminUser(message.Chat.Id);
+        }
+
+        public async Task OnContinueSettingAdminUser(ITelegramBotClient botClient, Message message) 
+        {
+            string text;
+
+            if (_adminUserService.DoesUserExist(message.Text))
+            {
+                text = string.Format(_resourceReader["FinishSettingAdminUser"], message.Text);
+
+                await _adminUserService.SetRole(message.Text, UserRole.Admin);
+            }
+            else 
+            {
+                text = string.Format(_resourceReader["ErrorSettingAdminUser"], message.Text);
+            }
+
+            await botClient.SendTextMessageAsync(
+                    chatId: message.Chat.Id,
+                    text: text,
+                    replyMarkup: new ReplyKeyboardRemove());
+
+            _adminUserService.BreakSettingAdminUser(message.Chat.Id);
+
+            return;
+        }
+
+        public async Task OnSoftRemoveUser(ITelegramBotClient botClient, Message message) 
+        {
+            if (!_adminUserService.HaveAnyAdminUsers())
+            {
+                await botClient.SendTextMessageAsync(message.Chat.Id, _resourceReader["DontHaveAnyAdminUsers"]);
+
+                return;
+            }
+
+            await botClient.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: _resourceReader["SoftRemoveAdmin"],
+                replyMarkup: new ReplyKeyboardMarkup(GetKeyboardsToAdminUsers(
+                    admins: _adminUserService.GetAdminByRole(UserRole.Admin),
+                    columns: 2)));
+
+            _adminUserService.StartRemovingAdminRole(message.Chat.Id);
+        }
+
+        public async Task OnContinueSoftRemoveUser(ITelegramBotClient botClient, Message message) 
+        {
+            string text;
+
+            if (_adminUserService.DoesUserExist(message.Text))
+            {
+                text = string.Format(_resourceReader["FinishSodtRemoveAdmin"], message.Text);
+
+                await _adminUserService.SetRole(message.Text, UserRole.Default);
+            }
+            else 
+            {
+                text = string.Format(_resourceReader["ErrorSoftRemoveAdmin"], message.Text);
+            }
+
+            await botClient.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: text,
+                replyMarkup: new ReplyKeyboardRemove());
+
+            _adminUserService.BreakRemovingAdminRole(message.Chat.Id);
         }
 
         public async Task OnStartCommand(ITelegramBotClient botClient, Message message, AdminUser admin) 
@@ -116,41 +249,10 @@ namespace Bot.Services
 
         public async Task OnHelpCommand(ITelegramBotClient botClient, Message message, AdminUser admin) 
         {
-            await UpdateUser(admin, message.From.Username);
-
             await botClient.SendTextMessageAsync(message.Chat.Id, GetHelpMessage(admin.Role));
         }
 
-        public async Task OnAddUser(ITelegramBotClient botClient, Message message, AdminUser admin) 
-        {
-            await UpdateUser(admin, message.From.Username);
-
-            _adminUserService.StartAddingUser(message.Chat.Id);
-
-            await botClient.SendTextMessageAsync(message.Chat.Id, _resourceReader["AddingUser"]);
-        }
-
-        public async Task OnContinueAddingUser(ITelegramBotClient botClient, Message message, AdminUser admin) 
-        {
-            await UpdateUser(admin, message.From.Username);
-
-            if (_adminUserService.DoesUserExist(message.Text))
-            {
-                await botClient.SendTextMessageAsync(
-                    chatId: message.Chat.Id,
-                    text: String.Format(_resourceReader["ErrorWithAddingUser"], message.Text));
-
-                _adminUserService.BreakAddingUser(message.Chat.Id);
-
-                return;
-            }
-
-            await _adminUserService.AddUser(message.Text, message.Chat.Id);
-
-            await botClient.SendTextMessageAsync(
-                chatId: message.Chat.Id,
-                text: String.Format(_resourceReader["FinishAddingUser"], message.Text));
-        }
+        #region ============================= Helper Functions ====================================================
 
         private string GetHelpMessage(UserRole role) 
         {
@@ -179,9 +281,9 @@ namespace Bot.Services
                 builder.Append('\n');
                 builder.Append('\n');
 
-                builder.Append(AdminCommandList.REMOVE_ADMIN_UESR);
+                builder.Append(AdminCommandList.REMOVE_USER);
                 builder.Append(" - ");
-                builder.Append(_resourceReader["RemoveAdminUserDescription"]);
+                builder.Append(_resourceReader["RemoveUserDescription"]);
 
                 builder.Append('\n');
                 builder.Append('\n');
@@ -234,5 +336,39 @@ namespace Bot.Services
 
             await _adminUserService.UpdateUser(userName, admin);
         }
+
+        private KeyboardButton[][] GetKeyboardsToAdminUsers(IList<AdminUser> admins, int columns) 
+        {
+            KeyboardButton[][] keyboards = new KeyboardButton[admins.Count][];
+
+            for (int i = 0; i < admins.Count; i++)
+            {
+                KeyboardButton[] buttons;
+
+                if (admins.Skip(i * columns).Count() >= columns)
+                {
+                    buttons = new KeyboardButton[columns];
+                }
+                else
+                {
+                    buttons = new KeyboardButton[admins.Skip(i * columns).Count()];
+                }
+
+                for (int j = 0; j < columns && i * columns + j < admins.Count; j++)
+                {
+                    StringBuilder stringBuilder = new('@');
+
+                    stringBuilder.Append(admins[i * columns + j].UserName);
+
+                    buttons[j] = stringBuilder.ToString();
+                }
+
+                keyboards[i] = buttons;
+            }
+
+            return keyboards;
+        }
+
+        #endregion
     }
 }
