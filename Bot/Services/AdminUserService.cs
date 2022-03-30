@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using AutoMapper;
 
 using Bot.Models;
@@ -10,14 +11,14 @@ namespace Bot.Services
 {
     public class AdminUserService
     {
-        private readonly ConcurrentDictionary<long, ExecutingCommand> _executers;
+        private readonly ConcurrentDictionary<long, ExecutingCommand> _executors;
 
         private readonly Entities.ApplicationContext _context;
         private readonly IMapper _mapper;
 
         public AdminUserService(Entities.ApplicationContext context, IMapper mapper)
         {
-            _executers = new ConcurrentDictionary<long, ExecutingCommand>();
+            _executors = new ConcurrentDictionary<long, ExecutingCommand>();
 
             _context = context;
             _mapper = mapper;
@@ -86,17 +87,17 @@ namespace Bot.Services
 
         public void StartExecutingCommand(long userChatId, ExecutingCommand command) 
         {
-            _executers.TryAdd(userChatId, command);
+            _executors.TryAdd(userChatId, command);
         }
 
         public void StopExecutingCommand(long userChatId) 
         {
-            _executers.Remove(userChatId, out _);
+            _executors.Remove(userChatId, out _);
         }
 
         public bool TryGetExecutingCommand(long userChatId, out ExecutingCommand command) 
         {
-            return _executers.TryGetValue(userChatId, out command);
+            return _executors.TryGetValue(userChatId, out command);
         }
 
         public async Task AddUser(string userName, long userAddingChatId)
@@ -144,18 +145,15 @@ namespace Bot.Services
 
         public async Task<AdminUser> RemoveUser(string userName) 
         {
-            try
-            {
-                return _mapper.Map<AdminUser>(_context.AdminUsers
-                    .Remove(await _context.AdminUsers
-                        .AsNoTracking()
-                        .FirstAsync(x => x.UserName == userName))
-                    .Entity);
-            }
-            finally
-            {
-                await _context.SaveChangesAsync();
-            }
+            LocalView<Bot.Entities.AdminUser> local = _context.AdminUsers.Local;
+
+            AdminUser user = _mapper.Map<AdminUser>(local.First(x => x.UserName == userName));
+
+            local.Remove(local.First(x => x.UserName == userName));
+
+            await _context.SaveChangesAsync();
+
+            return user;
         }
     }
 }

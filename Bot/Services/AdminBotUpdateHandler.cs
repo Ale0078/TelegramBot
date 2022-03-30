@@ -89,13 +89,13 @@ namespace Bot.Services
 
             action = command switch
             {
-                _ => ChooseFromOwnerContinueCommand(botClient, message, admin, command)
+                _ => ChooseFromOwnerContinueCommands(botClient, message, admin, command)
             };
 
             return action;
         }
 
-        public Task ChooseFromOwnerContinueCommand(ITelegramBotClient botClient, Message message, AdminUser admin, ExecutingCommand command) 
+        public Task ChooseFromOwnerContinueCommands(ITelegramBotClient botClient, Message message, AdminUser admin, ExecutingCommand command) 
         {
             Task action = null;
 
@@ -105,7 +105,8 @@ namespace Bot.Services
                 {
                     ExecutingCommand.Adding => OnContinueAddingUser(botClient, message),
                     ExecutingCommand.SettingAdminRole => OnContinueSettingAdminUser(botClient, message),
-                    ExecutingCommand.SoftRemoning => OnContinueSoftRemoveUser(botClient, message)
+                    ExecutingCommand.SoftRemoning => OnContinueSoftRemoveUser(botClient, message),
+                    ExecutingCommand.Removing => OnContinueRemovingUser(botClient, message)
                 };
             }
 
@@ -136,7 +137,8 @@ namespace Bot.Services
                 {
                     AdminCommandList.ADD_USER => OnAddUser(botClient, message),
                     AdminCommandList.SET_ADMIN_USER => OnSetAdminUser(botClient, message),
-                    AdminCommandList.SOFT_REMOVE_ADMIN_USER => OnSoftRemoveUser(botClient, message)
+                    AdminCommandList.SOFT_REMOVE_ADMIN_USER => OnSoftRemoveUser(botClient, message),
+                    AdminCommandList.REMOVE_USER => OnRemoveUser(botClient, message)
                 };
             }
 
@@ -246,6 +248,48 @@ namespace Bot.Services
             else 
             {
                 text = string.Format(_resourceReader["ErrorSoftRemoveAdmin"], message.Text);
+            }
+
+            await botClient.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: text,
+                replyMarkup: new ReplyKeyboardRemove());
+
+            _adminUserService.StopExecutingCommand(message.Chat.Id);
+        }
+
+        public async Task OnRemoveUser(ITelegramBotClient botClient, Message message) 
+        {
+            if (!_adminUserService.HaveAnyNoAdminUsers())
+            {
+                await botClient.SendTextMessageAsync(message.Chat.Id, _resourceReader["DontHaveUsersToRemove"]);
+
+                return;
+            }
+
+            await botClient.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: _resourceReader["RemoveUser"],
+                replyMarkup: new ReplyKeyboardMarkup(GetKeyboardsToAdminUsers(
+                    admins: _adminUserService.GetAdminByRole(UserRole.Default),
+                    columns: 2)));
+
+            _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.Removing);
+        }
+
+        public async Task OnContinueRemovingUser(ITelegramBotClient botClient, Message message) 
+        {
+            string text;
+
+            if (_adminUserService.DoesUserExist(message.Text))
+            {
+                AdminUser user = await _adminUserService.RemoveUser(message.Text);
+
+                text = string.Format(_resourceReader["FinishRemovingUser"], user.UserName);
+            }
+            else 
+            {
+                text = string.Format(_resourceReader["ErrorRemovingUser"], message.Text);
             }
 
             await botClient.SendTextMessageAsync(
