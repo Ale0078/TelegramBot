@@ -22,6 +22,8 @@
   "ExceptionMessage": "Прости, но я не знаю этой команды",
   "FromUserResource": "Привет! Как ты узнал обо мне?",
   "GettingUsersPattern": "|\tИмя:{0}\t|\tФамилия:{1}\t|\tТелеграм:{2}\t|\tОткуда узнал:{3}\t|\n\n",
+  "NameOfFileWithUsersFromResourceAsPdf": "Потльзователь с {0}.pdf",
+  "NameOfFileWithAllUsersAsPdf": "Все пользователи.pdf",
 
   //=======================================AdmiBot======================================================
   "AddUserDescription": "Добавить нового пользователя в базу данных",

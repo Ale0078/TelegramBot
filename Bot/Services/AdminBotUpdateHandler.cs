@@ -4,6 +4,7 @@ using Telegram.Bot.Extensions.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.Bot.Types.InputFiles;
 
 using Bot.Datas;
 using Bot.Data;
@@ -352,9 +353,41 @@ namespace Bot.Services
             _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.GettingUsersAsFile);
         }
 
-        public async Task OnContinueGettingUsersAsFile(ITelegramBotClient botClinet, Message message) 
+        public async Task OnContinueGettingUsersAsFile(ITelegramBotClient botClient, Message message) 
         {
-            
+            UserComingResource? actualComingResource = null;
+
+            if (Enum.TryParse(message.Text, out UserComingResource comingResource))
+            {
+                actualComingResource = comingResource;
+            }
+
+            if (!await _chatUserService.DoesUserFromCommitgResourceExist(actualComingResource))
+            {
+                string text = actualComingResource is null
+                    ? _resourceReader["DontHaveUsers"]
+                    : String.Format(_resourceReader["DontHaveUsersFromResource"], actualComingResource.Value.ToString());
+
+                await botClient.SendTextMessageAsync(
+                    chatId: message.Chat.Id,
+                    text: text,
+                    replyMarkup: new ReplyKeyboardRemove());
+            }
+            else 
+            {
+                using Stream stream = FileCreater.GetUsersAsPDF(await _chatUserService.GetUsersByCommingResource(actualComingResource));
+
+                await botClient.SendDocumentAsync(
+                    chatId: message.Chat.Id,
+                    document: new InputOnlineFile(
+                        content: stream,
+                        fileName: actualComingResource is null
+                            ? _resourceReader["NameOfFileWithAllUsersAsPdf"]
+                            : String.Format(_resourceReader["NameOfFileWithUsersFromResourceAsPdf"], actualComingResource.Value.ToString())),
+                    replyMarkup: new ReplyKeyboardRemove());
+            }
+
+            _adminUserService.StopExecutingCommand(message.Chat.Id);
         }
 
         public async Task OnStartCommand(ITelegramBotClient botClient, Message message, AdminUser admin) 
