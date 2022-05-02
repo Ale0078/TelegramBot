@@ -8,7 +8,7 @@
         public const string SET_ADMIN_USER = "/set_admin_user";
         public const string SOFT_REMOVE_ADMIN_USER = "/soft_remove_admin_user";
         public const string REMOVE_USER = "/remove_user";
-        public const string GET_USERS_FROM_INSTAGRAM_COMMAND = "/get_users_from_instagram";
-        public const string GET_USERS_FROM_INSTAGRAM_COMMAND_AS_FILE = "/get_users_from_instagram_as_file";
+        public const string GET_USERS_COMMAND = "/get_users";
+        public const string GET_USERS_COMMAND_AS_FILE = "/get_users_as_file";
     }
 }

@@ -17,11 +17,13 @@ namespace Bot.Services
 
         private readonly ResourceReader _resourceReader;
         private readonly AdminUserService _adminUserService;
+        private readonly ChatUserService _chatUserService;
 
-        public AdminBotUpdateHandler(ResourceReader resourceReader, AdminUserService adminUserService)
+        public AdminBotUpdateHandler(ResourceReader resourceReader, AdminUserService adminUserService, ChatUserService chatUserService)
         {
             _resourceReader = resourceReader;
             _adminUserService = adminUserService;
+            _chatUserService = chatUserService;
         }
 
         public async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
@@ -44,10 +46,6 @@ namespace Bot.Services
 
             await UpdateUser(admin, update.Message.From.Username);
 
-            //Task handler = update.Type switch
-            //{
-            //    UpdateType.Message => OnMessageRecive(botClient, update.Message)
-            //};
             Task handler = OnMessageRecive(botClient, update.Message, admin);
 
             try
@@ -62,7 +60,7 @@ namespace Bot.Services
             }
         }
 
-        public async Task OnMessageRecive(ITelegramBotClient botClient, Message message, AdminUser admin) 
+        public async Task OnMessageRecive(ITelegramBotClient botClient, Message message, AdminUser admin)
         {
             if (message.Type is not MessageType.Text)
             {
@@ -75,7 +73,7 @@ namespace Bot.Services
             {
                 handler = ChooseContinueCommand(botClient, message, admin, command);
             }
-            else 
+            else
             {
                 handler = ChooseCommand(botClient, message, admin);
             }
@@ -83,19 +81,21 @@ namespace Bot.Services
             await handler;
         }
 
-        public Task ChooseContinueCommand(ITelegramBotClient botClient, Message message, AdminUser admin, ExecutingCommand command) 
+        public Task ChooseContinueCommand(ITelegramBotClient botClient, Message message, AdminUser admin, ExecutingCommand command)
         {
             Task action;
 
             action = command switch
             {
+                ExecutingCommand.GettingUsers => OnContinueGettingUsers(botClient, message),
+                ExecutingCommand.GettingUsersAsFile => OnContinueGettingUsersAsFile(botClient, message),
                 _ => ChooseFromOwnerContinueCommands(botClient, message, admin, command)
             };
 
             return action;
         }
 
-        public Task ChooseFromOwnerContinueCommands(ITelegramBotClient botClient, Message message, AdminUser admin, ExecutingCommand command) 
+        public Task ChooseFromOwnerContinueCommands(ITelegramBotClient botClient, Message message, AdminUser admin, ExecutingCommand command)
         {
             Task action = null;
 
@@ -113,7 +113,7 @@ namespace Bot.Services
             return action;
         }
 
-        public Task ChooseCommand(ITelegramBotClient botClient, Message message, AdminUser admin) 
+        public Task ChooseCommand(ITelegramBotClient botClient, Message message, AdminUser admin)
         {
             Task action;
 
@@ -121,13 +121,15 @@ namespace Bot.Services
             {
                 AdminCommandList.START_COMMAND => OnStartCommand(botClient, message, admin),
                 AdminCommandList.HALPE_COMMAND => OnHelpCommand(botClient, message, admin),
+                AdminCommandList.GET_USERS_COMMAND => OnGetUsers(botClient, message),
+                AdminCommandList.GET_USERS_COMMAND_AS_FILE => OnGetUsersAsFile(botClient, message),
                 _ => ChooseFromOwnerCommands(botClient, message, admin)
             };
 
             return action;
         }
 
-        public Task ChooseFromOwnerCommands(ITelegramBotClient botClient, Message message, AdminUser admin) 
+        public Task ChooseFromOwnerCommands(ITelegramBotClient botClient, Message message, AdminUser admin)
         {
             Task action = null;
 
@@ -162,7 +164,7 @@ namespace Bot.Services
 
                 _adminUserService.StopExecutingCommand(message.Chat.Id);
             }
-            else 
+            else
             {
                 text = string.Format(_resourceReader["FinishAddingUser"], message.Text);
 
@@ -172,7 +174,7 @@ namespace Bot.Services
             await botClient.SendTextMessageAsync(message.Chat.Id, text);
         }
 
-        public async Task OnSetAdminUser(ITelegramBotClient botClient, Message message) 
+        public async Task OnSetAdminUser(ITelegramBotClient botClient, Message message)
         {
             if (!_adminUserService.HaveAnyNoAdminUsers())
             {
@@ -184,14 +186,14 @@ namespace Bot.Services
             await botClient.SendTextMessageAsync(
                 chatId: message.Chat.Id,
                 text: _resourceReader["SettingAdminUser"],
-                replyMarkup: new ReplyKeyboardMarkup(GetKeyboardsToAdminUsers(
+                replyMarkup: new ReplyKeyboardMarkup(GetKeyboardsFromAdminUsers(
                     admins: _adminUserService.GetAdminByRole(UserRole.Default),
                     columns: 2)));
 
             _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.SettingAdminRole);
         }
 
-        public async Task OnContinueSettingAdminUser(ITelegramBotClient botClient, Message message) 
+        public async Task OnContinueSettingAdminUser(ITelegramBotClient botClient, Message message)
         {
             string text;
 
@@ -201,7 +203,7 @@ namespace Bot.Services
 
                 await _adminUserService.SetRole(message.Text, UserRole.Admin);
             }
-            else 
+            else
             {
                 text = string.Format(_resourceReader["ErrorSettingAdminUser"], message.Text);
             }
@@ -216,7 +218,7 @@ namespace Bot.Services
             return;
         }
 
-        public async Task OnSoftRemoveUser(ITelegramBotClient botClient, Message message) 
+        public async Task OnSoftRemoveUser(ITelegramBotClient botClient, Message message)
         {
             if (!_adminUserService.HaveAnyAdminUsers())
             {
@@ -228,14 +230,14 @@ namespace Bot.Services
             await botClient.SendTextMessageAsync(
                 chatId: message.Chat.Id,
                 text: _resourceReader["SoftRemoveAdmin"],
-                replyMarkup: new ReplyKeyboardMarkup(GetKeyboardsToAdminUsers(
+                replyMarkup: new ReplyKeyboardMarkup(GetKeyboardsFromAdminUsers(
                     admins: _adminUserService.GetAdminByRole(UserRole.Admin),
                     columns: 2)));
 
             _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.SoftRemoning);
         }
 
-        public async Task OnContinueSoftRemoveUser(ITelegramBotClient botClient, Message message) 
+        public async Task OnContinueSoftRemoveUser(ITelegramBotClient botClient, Message message)
         {
             string text;
 
@@ -245,7 +247,7 @@ namespace Bot.Services
 
                 await _adminUserService.SetRole(message.Text, UserRole.Default);
             }
-            else 
+            else
             {
                 text = string.Format(_resourceReader["ErrorSoftRemoveAdmin"], message.Text);
             }
@@ -258,7 +260,7 @@ namespace Bot.Services
             _adminUserService.StopExecutingCommand(message.Chat.Id);
         }
 
-        public async Task OnRemoveUser(ITelegramBotClient botClient, Message message) 
+        public async Task OnRemoveUser(ITelegramBotClient botClient, Message message)
         {
             if (!_adminUserService.HaveAnyNoAdminUsers())
             {
@@ -270,14 +272,14 @@ namespace Bot.Services
             await botClient.SendTextMessageAsync(
                 chatId: message.Chat.Id,
                 text: _resourceReader["RemoveUser"],
-                replyMarkup: new ReplyKeyboardMarkup(GetKeyboardsToAdminUsers(
+                replyMarkup: new ReplyKeyboardMarkup(GetKeyboardsFromAdminUsers(
                     admins: _adminUserService.GetAdminByRole(UserRole.Default),
                     columns: 2)));
 
             _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.Removing);
         }
 
-        public async Task OnContinueRemovingUser(ITelegramBotClient botClient, Message message) 
+        public async Task OnContinueRemovingUser(ITelegramBotClient botClient, Message message)
         {
             string text;
 
@@ -287,7 +289,7 @@ namespace Bot.Services
 
                 text = string.Format(_resourceReader["FinishRemovingUser"], user.UserName);
             }
-            else 
+            else
             {
                 text = string.Format(_resourceReader["ErrorRemovingUser"], message.Text);
             }
@@ -298,6 +300,61 @@ namespace Bot.Services
                 replyMarkup: new ReplyKeyboardRemove());
 
             _adminUserService.StopExecutingCommand(message.Chat.Id);
+        }
+
+        public async Task OnGetUsers(ITelegramBotClient botClient, Message message)
+        {
+            await botClient.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: _resourceReader["GetUsers"],
+                replyMarkup: new ReplyKeyboardMarkup(GetKeyboardsToSelectUserComingResource(2)));
+
+            _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.GettingUsers);
+        }
+
+        public async Task OnContinueGettingUsers(ITelegramBotClient botClient, Message message)
+        {
+            string text;
+
+            UserComingResource? actualComingResource = null;
+
+            if (Enum.TryParse(message.Text, out UserComingResource comingResource))
+            {
+                actualComingResource = comingResource;
+            }
+
+            if (await _chatUserService.DoesUserFromCommitgResourceExist(actualComingResource))
+            {
+                text = GetChatUsersAsString(await _chatUserService.GetUsersByCommingResource(actualComingResource));
+            }
+            else
+            {
+                text = actualComingResource is null
+                    ? _resourceReader["DontHaveUsers"]
+                    : String.Format(_resourceReader["DontHaveUsersFromResource"], actualComingResource.Value.ToString());
+            }
+
+            await botClient.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: text,
+                replyMarkup: new ReplyKeyboardRemove());
+
+            _adminUserService.StopExecutingCommand(message.Chat.Id);
+        }
+
+        public async Task OnGetUsersAsFile(ITelegramBotClient botClient, Message message) 
+        {
+            await botClient.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: _resourceReader["GetUsers"],
+                replyMarkup: new ReplyKeyboardMarkup(GetKeyboardsToSelectUserComingResource(2)));
+
+            _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.GettingUsersAsFile);
+        }
+
+        public async Task OnContinueGettingUsersAsFile(ITelegramBotClient botClinet, Message message) 
+        {
+            
         }
 
         public async Task OnStartCommand(ITelegramBotClient botClient, Message message, AdminUser admin) 
@@ -352,16 +409,16 @@ namespace Bot.Services
                 builder.Append('\n');
             }
 
-            builder.Append(AdminCommandList.GET_USERS_FROM_INSTAGRAM_COMMAND);
+            builder.Append(AdminCommandList.GET_USERS_COMMAND);
             builder.Append(" - ");
-            builder.Append(_resourceReader["GetUserFromInstagramDescription"]);
+            builder.Append(_resourceReader["GetUserDescription"]);
 
             builder.Append('\n');
             builder.Append('\n');
 
-            builder.Append(AdminCommandList.GET_USERS_FROM_INSTAGRAM_COMMAND_AS_FILE);
+            builder.Append(AdminCommandList.GET_USERS_COMMAND_AS_FILE);
             builder.Append(" - ");
-            builder.Append(_resourceReader["GetUserFromInstagramAsFileDescription"]);
+            builder.Append(_resourceReader["GetUserAsFileDescription"]);
 
             builder.Append('\n');
             builder.Append('\n');
@@ -400,7 +457,7 @@ namespace Bot.Services
             await _adminUserService.UpdateUser(userName, admin);
         }
 
-        private KeyboardButton[][] GetKeyboardsToAdminUsers(IList<AdminUser> admins, int columns) 
+        private KeyboardButton[][] GetKeyboardsFromAdminUsers(IList<AdminUser> admins, int columns) 
         {
             KeyboardButton[][] keyboards = new KeyboardButton[admins.Count][];
 
@@ -430,6 +487,66 @@ namespace Bot.Services
             }
 
             return keyboards;
+        }
+        
+        private KeyboardButton[][] GetKeyboardsToSelectUserComingResource(int columns) 
+        {
+            List<string> resources = new(Enum.GetNames<UserComingResource>());
+
+            resources.Add("Get everyone");
+
+            KeyboardButton[][] keyboards;
+
+            int countOfSources = resources.Count();
+            int rows = countOfSources / columns;
+
+            if (countOfSources % columns == 0)
+            {
+                keyboards = new KeyboardButton[rows][];
+            }
+            else 
+            {
+                rows++;
+
+                keyboards = new KeyboardButton[rows][];
+            }
+
+            for (int i = 0; i < rows; i++)
+            {
+                KeyboardButton[] buttons;
+
+                if (resources.Skip(i * columns).Count() >= columns)
+                {
+                    buttons = new KeyboardButton[columns];
+                }
+                else 
+                {
+                    buttons = new KeyboardButton[resources.Skip(i * columns).Count()];
+                }
+
+                for (int j = 0; j < columns && i * columns + j < countOfSources; j++)
+                {
+                    buttons[j] = resources[i * columns + j];
+                }
+
+                keyboards[i] = buttons;
+            }
+
+            return keyboards;
+        }
+
+        private string GetChatUsersAsString(IEnumerable<ChatUser> users) 
+        {
+            StringBuilder stringBuilder = new();
+
+            foreach (ChatUser user in users) 
+            {
+                stringBuilder.Append(
+                    string.Format(_resourceReader["GettingUsersPattern"],
+                        user.FirstName, user.Surname, user.UserName, user.From.ToString()));
+            }
+
+            return stringBuilder.ToString();
         }
 
         #endregion

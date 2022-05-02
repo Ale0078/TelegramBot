@@ -5,6 +5,8 @@
         Adding,
         SettingAdminRole,
         Removing,
-        SoftRemoning
+        SoftRemoning,
+        GettingUsers,
+        GettingUsersAsFile
     }
 }

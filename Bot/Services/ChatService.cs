@@ -2,6 +2,7 @@
 using AutoMapper;
 
 using Bot.Entities;
+using Bot.Data;
 
 namespace Bot.Services
 {
@@ -23,23 +24,23 @@ namespace Bot.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task RemoveChat(long id) 
+        public async Task RemoveChat(long id)
         {
             _context.Chats.Remove(_context.Chats.Find(id));
 
             await _context.SaveChangesAsync();
         }
 
-        public bool DoesExist(long id) 
+        public bool DoesExist(long id)
         {
             return _context.Chats.Any(chat => chat.Id == id);
         }
 
-        public async Task MailAllUnmaledChats() 
+        public async Task MailAllUnmaledChats()
         {
             IQueryable<Chat> chats = _context.Chats.Where(chat => !chat.DoesGetMail);
 
-            foreach (Chat chat in chats) 
+            foreach (Chat chat in chats)
             {
                 chat.DoesGetMail = true;
             }
@@ -47,8 +48,8 @@ namespace Bot.Services
             await _context.SaveChangesAsync();
         }
 
-        public IEnumerable<Bot.Models.Chat> GetAllUnmaledUserThatFinishedTest() 
-        { 
+        public IEnumerable<Bot.Models.Chat> GetAllUnmaledUserThatFinishedTest()
+        {
             IEnumerable<Chat> chats = _context.Chats
                 .Where(chat => chat.DoesFinishTest && !chat.DoesGetMail)
                 .AsNoTracking()
@@ -57,7 +58,7 @@ namespace Bot.Services
             return _mapper.Map<IEnumerable<Bot.Models.Chat>>(chats);
         }
 
-        public async Task FinishTest(long id) 
+        public async Task FinishTest(long id)
         {
             Chat chat = await _context.Chats.FindAsync(id);
 
