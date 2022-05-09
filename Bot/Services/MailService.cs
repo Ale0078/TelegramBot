@@ -69,7 +69,9 @@ namespace Bot.Services
                 return;
             }
 
-            IEnumerable<MailingData> mailingDatas = _currentMails.Where(data => data.DateOfMailing <= DateTime.Now);
+            IEnumerable<MailingData> mailingDatas = new List<MailingData>(_currentMails
+                .Where(data => data.DateOfMailing <= DateTime.Now)
+                .AsEnumerable());
             IEnumerable<long> chatIds = GetChatIds();
 
             foreach (MailingData data in mailingDatas)

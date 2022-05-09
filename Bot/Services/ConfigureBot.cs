@@ -3,6 +3,8 @@ using Telegram.Bot.Extensions.Polling;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
+using Bot.Extentions;
+
 namespace Bot.Services
 {
     public class ConfigureBot : IHostedService
@@ -59,7 +61,7 @@ namespace Bot.Services
             TimeSpan dueTime;
             TimeSpan period = new(24, 0, 0);
 
-            DateTime currentTime = DateTime.UtcNow.AddHours(2);
+            DateTime currentTime = DateTime.UtcNow.GetUkrainianTimeFromUtc();
             
             if (currentTime.Hour < _timeOfMalingByUa)
             {

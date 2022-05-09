@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Globalization;
 using Telegram.Bot;
 using Telegram.Bot.Extensions.Polling;
 using Telegram.Bot.Types;
@@ -9,6 +10,7 @@ using Telegram.Bot.Types.InputFiles;
 using Bot.Datas;
 using Bot.Data;
 using Bot.Models;
+using Bot.Extentions;
 
 namespace Bot.Services
 {
@@ -20,6 +22,7 @@ namespace Bot.Services
         private readonly AdminUserService _adminUserService;
         private readonly ChatUserService _chatUserService;
         private readonly MailService _mailService;
+        private readonly CultureInfo _cultureToParseDate;
 
         public AdminBotUpdateHandler(ResourceReader resourceReader, AdminUserService adminUserService, 
             ChatUserService chatUserService, MailService mailService)
@@ -28,6 +31,7 @@ namespace Bot.Services
             _adminUserService = adminUserService;
             _chatUserService = chatUserService;
             _mailService = mailService;
+            _cultureToParseDate = new CultureInfo("uk-UA");
         }
 
         public async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
@@ -94,6 +98,8 @@ namespace Bot.Services
                 ExecutingCommand.GettingUsers => OnContinueGettingUsers(botClient, message),
                 ExecutingCommand.GettingUsersAsFile => OnContinueGettingUsersAsFile(botClient, message),
                 ExecutingCommand.DoingMailingImmediatly => OnContinueDoingMailingImmediatly(botClient, message),
+                ExecutingCommand.DoingMailingMessage => OnContinueDoingMailingMessage(botClient, message),
+                ExecutingCommand.DoingMailingDate => OnContinueDoingMailingDate(botClient, message),
                 _ => ChooseFromOwnerContinueCommands(botClient, message, admin, command)
             };
 
@@ -129,6 +135,7 @@ namespace Bot.Services
                 AdminCommandList.GET_USERS_COMMAND => OnGetUsers(botClient, message),
                 AdminCommandList.GET_USERS_COMMAND_AS_FILE => OnGetUsersAsFile(botClient, message),
                 AdminCommandList.DO_MAILING_IMMEDIATLY => OnDoMailingImmediatly(botClient, message),
+                AdminCommandList.DO_MAILING => OnDoMailing(botClient, message),
                 _ => ChooseFromOwnerCommands(botClient, message, admin)
             };
 
@@ -413,6 +420,50 @@ namespace Bot.Services
                 text: _resourceReader["DoMailingSuccess"]);
 
             _adminUserService.StopExecutingCommand(message.Chat.Id);
+        }
+
+        private async Task OnDoMailing(ITelegramBotClient botClient, Message message) 
+        {
+            await botClient.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: _resourceReader["StartDoingMailing"]);
+
+            _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.DoingMailingMessage);
+        }
+
+        private async Task OnContinueDoingMailingMessage(ITelegramBotClient botClient, Message message) 
+        {
+            _mailService.StartCreatingMailing(message.Chat.Id, message.Text);
+
+            await botClient.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: _resourceReader["FinishDoingMailing"]);
+
+            _adminUserService.StopExecutingCommand(message.Chat.Id);
+            _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.DoingMailingDate);
+        }
+
+        private async Task OnContinueDoingMailingDate(ITelegramBotClient botClient, Message message) 
+        {
+            string text;
+
+            if (DateTime.TryParse(message.Text, _cultureToParseDate, DateTimeStyles.None, out DateTime dateOfMailing)
+                && dateOfMailing >= DateTime.UtcNow.GetUkrainianTimeFromUtc())
+            {
+                _mailService.FinishCreatingMailing(message.Chat.Id, dateOfMailing);
+
+                text = _resourceReader["DoMailingSuccess"];
+
+                _adminUserService.StopExecutingCommand(message.Chat.Id);
+            }
+            else 
+            {
+                text = _resourceReader["DoMailingDateTimeError"];
+            }
+
+            await botClient.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: text);
         }
 
         private async Task OnStartCommand(ITelegramBotClient botClient, Message message, AdminUser admin) 
