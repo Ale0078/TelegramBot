@@ -150,8 +150,12 @@ namespace Bot.Services
                 {
                     await _chatService.AddChat(message.Chat.Id, new ChatUser
                     {
-                        FirstName = message.From.FirstName,
-                        Surname = message.From.LastName,
+                        FirstName = message.From.FirstName is null 
+                            ? "" 
+                            : message.From.FirstName,
+                        Surname = message.From.LastName is null
+                            ? ""
+                            : message.From.LastName,
                         UserName = message.From.Username,
                         From = resource
                     });

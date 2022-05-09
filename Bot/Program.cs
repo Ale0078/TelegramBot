@@ -26,7 +26,10 @@ builder.Services.AddTransient<AdminBotUpdateHandler>();
 
 builder.Services.AddSingleton<ITelegramBotClient>(serviceProvider => new TelegramBotClient(
     builder.Configuration.GetSection("BotToken").Value));
-builder.Services.AddSingleton<ResourceReader>(x => new ResourceReader(builder.Configuration.GetSection("ResourcePath").Value));
+builder.Services.AddSingleton<ResourceReader>(x => new ResourceReader(
+    builder.Configuration.GetSection("ResourcePath").Value));
+builder.Services.AddSingleton<MailService>(serviceProvider => new MailService(
+    builder.Configuration.GetSection("BotToken").Value, CreateContext()));
 
 builder.Services.AddDbContext<ApplicationContext>(options => options.UseMySql(
         connectionString: builder.Configuration.GetConnectionString("DefaultConnection"),

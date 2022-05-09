@@ -19,12 +19,15 @@ namespace Bot.Services
         private readonly ResourceReader _resourceReader;
         private readonly AdminUserService _adminUserService;
         private readonly ChatUserService _chatUserService;
+        private readonly MailService _mailService;
 
-        public AdminBotUpdateHandler(ResourceReader resourceReader, AdminUserService adminUserService, ChatUserService chatUserService)
+        public AdminBotUpdateHandler(ResourceReader resourceReader, AdminUserService adminUserService, 
+            ChatUserService chatUserService, MailService mailService)
         {
             _resourceReader = resourceReader;
             _adminUserService = adminUserService;
             _chatUserService = chatUserService;
+            _mailService = mailService;
         }
 
         public async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
@@ -61,7 +64,7 @@ namespace Bot.Services
             }
         }
 
-        public async Task OnMessageRecive(ITelegramBotClient botClient, Message message, AdminUser admin)
+        private async Task OnMessageRecive(ITelegramBotClient botClient, Message message, AdminUser admin)
         {
             if (message.Type is not MessageType.Text)
             {
@@ -82,7 +85,7 @@ namespace Bot.Services
             await handler;
         }
 
-        public Task ChooseContinueCommand(ITelegramBotClient botClient, Message message, AdminUser admin, ExecutingCommand command)
+        private Task ChooseContinueCommand(ITelegramBotClient botClient, Message message, AdminUser admin, ExecutingCommand command)
         {
             Task action;
 
@@ -90,13 +93,14 @@ namespace Bot.Services
             {
                 ExecutingCommand.GettingUsers => OnContinueGettingUsers(botClient, message),
                 ExecutingCommand.GettingUsersAsFile => OnContinueGettingUsersAsFile(botClient, message),
+                ExecutingCommand.DoingMailingImmediatly => OnContinueDoingMailingImmediatly(botClient, message),
                 _ => ChooseFromOwnerContinueCommands(botClient, message, admin, command)
             };
 
             return action;
         }
 
-        public Task ChooseFromOwnerContinueCommands(ITelegramBotClient botClient, Message message, AdminUser admin, ExecutingCommand command)
+        private Task ChooseFromOwnerContinueCommands(ITelegramBotClient botClient, Message message, AdminUser admin, ExecutingCommand command)
         {
             Task action = null;
 
@@ -114,7 +118,7 @@ namespace Bot.Services
             return action;
         }
 
-        public Task ChooseCommand(ITelegramBotClient botClient, Message message, AdminUser admin)
+        private Task ChooseCommand(ITelegramBotClient botClient, Message message, AdminUser admin)
         {
             Task action;
 
@@ -124,13 +128,14 @@ namespace Bot.Services
                 AdminCommandList.HALPE_COMMAND => OnHelpCommand(botClient, message, admin),
                 AdminCommandList.GET_USERS_COMMAND => OnGetUsers(botClient, message),
                 AdminCommandList.GET_USERS_COMMAND_AS_FILE => OnGetUsersAsFile(botClient, message),
+                AdminCommandList.DO_MAILING_IMMEDIATLY => OnDoMailingImmediatly(botClient, message),
                 _ => ChooseFromOwnerCommands(botClient, message, admin)
             };
 
             return action;
         }
 
-        public Task ChooseFromOwnerCommands(ITelegramBotClient botClient, Message message, AdminUser admin)
+        private Task ChooseFromOwnerCommands(ITelegramBotClient botClient, Message message, AdminUser admin)
         {
             Task action = null;
 
@@ -148,14 +153,14 @@ namespace Bot.Services
             return action;
         }
 
-        public async Task OnAddUser(ITelegramBotClient botClient, Message message)
+        private async Task OnAddUser(ITelegramBotClient botClient, Message message)
         {
             _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.Adding);
 
             await botClient.SendTextMessageAsync(message.Chat.Id, _resourceReader["AddingUser"]);
         }
 
-        public async Task OnContinueAddingUser(ITelegramBotClient botClient, Message message)
+        private async Task OnContinueAddingUser(ITelegramBotClient botClient, Message message)
         {
             string text;
 
@@ -175,7 +180,7 @@ namespace Bot.Services
             await botClient.SendTextMessageAsync(message.Chat.Id, text);
         }
 
-        public async Task OnSetAdminUser(ITelegramBotClient botClient, Message message)
+        private async Task OnSetAdminUser(ITelegramBotClient botClient, Message message)
         {
             if (!_adminUserService.HaveAnyNoAdminUsers())
             {
@@ -194,7 +199,7 @@ namespace Bot.Services
             _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.SettingAdminRole);
         }
 
-        public async Task OnContinueSettingAdminUser(ITelegramBotClient botClient, Message message)
+        private async Task OnContinueSettingAdminUser(ITelegramBotClient botClient, Message message)
         {
             string text;
 
@@ -219,7 +224,7 @@ namespace Bot.Services
             return;
         }
 
-        public async Task OnSoftRemoveUser(ITelegramBotClient botClient, Message message)
+        private async Task OnSoftRemoveUser(ITelegramBotClient botClient, Message message)
         {
             if (!_adminUserService.HaveAnyAdminUsers())
             {
@@ -238,7 +243,7 @@ namespace Bot.Services
             _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.SoftRemoning);
         }
 
-        public async Task OnContinueSoftRemoveUser(ITelegramBotClient botClient, Message message)
+        private async Task OnContinueSoftRemoveUser(ITelegramBotClient botClient, Message message)
         {
             string text;
 
@@ -261,7 +266,7 @@ namespace Bot.Services
             _adminUserService.StopExecutingCommand(message.Chat.Id);
         }
 
-        public async Task OnRemoveUser(ITelegramBotClient botClient, Message message)
+        private async Task OnRemoveUser(ITelegramBotClient botClient, Message message)
         {
             if (!_adminUserService.HaveAnyNoAdminUsers())
             {
@@ -280,7 +285,7 @@ namespace Bot.Services
             _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.Removing);
         }
 
-        public async Task OnContinueRemovingUser(ITelegramBotClient botClient, Message message)
+        private async Task OnContinueRemovingUser(ITelegramBotClient botClient, Message message)
         {
             string text;
 
@@ -303,7 +308,7 @@ namespace Bot.Services
             _adminUserService.StopExecutingCommand(message.Chat.Id);
         }
 
-        public async Task OnGetUsers(ITelegramBotClient botClient, Message message)
+        private async Task OnGetUsers(ITelegramBotClient botClient, Message message)
         {
             await botClient.SendTextMessageAsync(
                 chatId: message.Chat.Id,
@@ -313,7 +318,7 @@ namespace Bot.Services
             _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.GettingUsers);
         }
 
-        public async Task OnContinueGettingUsers(ITelegramBotClient botClient, Message message)
+        private async Task OnContinueGettingUsers(ITelegramBotClient botClient, Message message)
         {
             string text;
 
@@ -343,7 +348,7 @@ namespace Bot.Services
             _adminUserService.StopExecutingCommand(message.Chat.Id);
         }
 
-        public async Task OnGetUsersAsFile(ITelegramBotClient botClient, Message message) 
+        private async Task OnGetUsersAsFile(ITelegramBotClient botClient, Message message) 
         {
             await botClient.SendTextMessageAsync(
                 chatId: message.Chat.Id,
@@ -353,7 +358,7 @@ namespace Bot.Services
             _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.GettingUsersAsFile);
         }
 
-        public async Task OnContinueGettingUsersAsFile(ITelegramBotClient botClient, Message message) 
+        private async Task OnContinueGettingUsersAsFile(ITelegramBotClient botClient, Message message) 
         {
             UserComingResource? actualComingResource = null;
 
@@ -390,7 +395,27 @@ namespace Bot.Services
             _adminUserService.StopExecutingCommand(message.Chat.Id);
         }
 
-        public async Task OnStartCommand(ITelegramBotClient botClient, Message message, AdminUser admin) 
+        private async Task OnDoMailingImmediatly(ITelegramBotClient botClient, Message message) 
+        {
+            await botClient.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: _resourceReader["StartDoingMailing"]);
+
+            _adminUserService.StartExecutingCommand(message.Chat.Id, ExecutingCommand.DoingMailingImmediatly);
+        }
+
+        private async Task OnContinueDoingMailingImmediatly(ITelegramBotClient botClient, Message message) 
+        {
+            await _mailService.DoMailingImmediately(message.Text);
+
+            await botClient.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: _resourceReader["DoMailingSuccess"]);
+
+            _adminUserService.StopExecutingCommand(message.Chat.Id);
+        }
+
+        private async Task OnStartCommand(ITelegramBotClient botClient, Message message, AdminUser admin) 
         {
             if (_adminUserService.DoesUserNeedFinishRegistration(admin))
             {
@@ -400,7 +425,7 @@ namespace Bot.Services
             await botClient.SendTextMessageAsync(message.Chat.Id, GetHelpMessage(admin.Role));
         }
 
-        public async Task OnHelpCommand(ITelegramBotClient botClient, Message message, AdminUser admin) 
+        private async Task OnHelpCommand(ITelegramBotClient botClient, Message message, AdminUser admin) 
         {
             await botClient.SendTextMessageAsync(message.Chat.Id, GetHelpMessage(admin.Role));
         }
@@ -459,6 +484,20 @@ namespace Bot.Services
             builder.Append(AdminCommandList.HALPE_COMMAND);
             builder.Append(" - ");
             builder.Append(_resourceReader["HelpDescription"]);
+
+            builder.Append('\n');
+            builder.Append('\n');
+
+            builder.Append(AdminCommandList.DO_MAILING);
+            builder.Append(" - ");
+            builder.Append(_resourceReader["DoMailingDescription"]);
+
+            builder.Append('\n');
+            builder.Append('\n');
+
+            builder.Append(AdminCommandList.DO_MAILING_IMMEDIATLY);
+            builder.Append(" - ");
+            builder.Append(_resourceReader["DoMailingImmediatlyDescription"]);
 
             return builder.ToString();
         }

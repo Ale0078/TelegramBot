@@ -7,6 +7,9 @@
         Removing,
         SoftRemoning,
         GettingUsers,
-        GettingUsersAsFile
+        GettingUsersAsFile,
+        DoingMailingMessage,
+        DoingMailingDate,
+        DoingMailingImmediatly
     }
 }
