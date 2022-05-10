@@ -1,7 +1,9 @@
-﻿namespace Bot.Datas
+﻿namespace Bot.Entities
 {
-    public class MailingData
+    public class Mailing
     {
+        public Guid Id { get; set; }
+
         public string Message { get; set; }
 
         public DateTime DateOfMailing { get; set; }

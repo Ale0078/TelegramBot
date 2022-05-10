@@ -18,6 +18,8 @@ namespace Bot.Entities
 
         public DbSet<AdminUser> AdminUsers { get; set; }
 
+        public DbSet<Mailing> Mailings { get; set; }
+
         public ApplicationContext(DbContextOptions<ApplicationContext> options) : base(options)
         {
             //Database.EnsureCreated();

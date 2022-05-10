@@ -1,4 +1,4 @@
-    using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 using Telegram.Bot;
 
@@ -29,14 +29,14 @@ builder.Services.AddSingleton<ITelegramBotClient>(serviceProvider => new Telegra
 builder.Services.AddSingleton<ResourceReader>(x => new ResourceReader(
     builder.Configuration.GetSection("ResourcePath").Value));
 builder.Services.AddSingleton<MailService>(serviceProvider => new MailService(
-    builder.Configuration.GetSection("BotToken").Value, CreateContext()));
+    builder.Configuration.GetSection("BotToken").Value, CreateContext(), serviceProvider.GetService<IMapper>()));
 
 builder.Services.AddDbContext<ApplicationContext>(options => options.UseMySql(
         connectionString: builder.Configuration.GetConnectionString("DefaultConnection"),
         serverVersion: new MySqlServerVersion(new Version(builder.Configuration.GetSection("MySqlServerVersion").Value))));
 
 builder.Services.AddAutoMapper(typeof(SuccessMessageProfile), typeof(FailMessageProfile), typeof(AnswerProfile), typeof(QuestionProfile),
-    typeof(ChatProfile), typeof(UserProfile));
+    typeof(ChatProfile), typeof(UserProfile), typeof(MailingProfile));
 
 var app = builder.Build();
 

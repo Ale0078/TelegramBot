@@ -21,6 +21,7 @@
     <PackageReference Include="System.ServiceModel.Primitives" Version="4.9.0" />
     <PackageReference Include="Telegram.Bot" Version="17.0.0" />
     <PackageReference Include="Telegram.Bot.Extensions.Polling" Version="1.0.2" />
+    <PackageReference Include="Z.EntityFramework.Plus.EFCore" Version="6.13.18" />
   </ItemGroup>
 
   <ItemGroup>
